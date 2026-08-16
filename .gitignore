@@ -37,6 +37,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# scratch space for the verification suites
+/.verify-tmp
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -17,7 +17,7 @@ where each session records what actually happened.
 | 5 — Sync & local controls | done (with caveats — see below) | 2026-08-16 | `203873f` |
 | 6 — Ownership actions | done | 2026-08-16 | `4896e21` |
 | 7 — Reveal tickets | done | 2026-08-16 | `8449216` |
-| 8 — Hardening & deploy | not started | | |
+| 8 — Hardening & deploy | code done; deploy is the user's step | 2026-08-16 | uncommitted |
 
 Status values: `not started` · `in progress` · `done` · `done (with caveats — see below)`
 
@@ -283,6 +283,23 @@ to know what was already considered.
   could both pass the budget check and spend a fourth ticket. Serialising it needs a
   transaction or an RPC and another migration. At six people this will not happen, and the
   primary key already makes the common case — the same song twice — exact.
+
+**Phase 8 (2026-08-16)**
+
+- **The verification suites are now committed** under `scripts/verify/`, run by
+  `npm run verify`. They only existed in a session scratchpad, which would have thrown away
+  252 assertions of evidence. **They reset the database**, so they are development-only —
+  the README says so twice.
+- **`vercel.json` pins functions to `icn1` (Seoul)** to match the database region. Vercel
+  Hobby defaults to Washington DC, which would put a trans-Pacific round trip in front of
+  each of the ~5 queries `/api/state` makes every 3 seconds per listener.
+- **No `.gitattributes` was added**, despite the note suggesting one. The CRLF warnings on
+  every commit are cosmetic: they say "LF *will be replaced by* CRLF in the working copy",
+  which means the repository already stores LF. Vercel's Linux build gets LF either way, so
+  a `text=auto eol=lf` file would only silence a local message while forcing a
+  whole-tree renormalisation diff. Not worth it.
+- **The deploy itself is the user's step** — it needs their GitHub and Vercel accounts.
+  Everything the deploy depends on is prepared and committed.
 
 ## Deviations from the spec or plan
 
@@ -576,22 +593,47 @@ Also in Phase 8:
 - `npm run typecheck` depends on `.next/types`, which only exist after a `next build` or
   `next dev` run. On a clean clone, build before typechecking.
 
-## §16 landmine audit (filled in at Phase 8)
+## §16 landmine audit — Phase 8, 2026-08-16
 
-| Item | Verified | Evidence |
+Audited fresh against the code, not carried over from the per-phase claims above. The
+script is `scripts/verify/audit.sh`; **54 checks, 0 failures**.
+
+| Item | | Evidence |
 |---|---|---|
-| `/api/state` returns `serverTime`; clients use offset-corrected time | ☐ | |
-| Normal transitions use `started_at + duration`, never `now()` | ☐ | |
-| Overshoot > 30s cold-starts instead of chaining | ☐ | |
-| `player_state` updates conditional on expected `current_item` | ☐ | |
-| Clients detect changes by `current_item` id, not position | ☐ | |
-| `onError` marks `failed` and advances | ☐ | |
-| Live streams and >10min videos rejected at add time | ☐ | |
-| Skips are silent — no "skipped by X" anywhere | ☐ | |
-| `added_by` never sent for un-revealed anonymous songs | ☐ | |
-| Day filter applies to queue list, not current-item lookup | ☐ | |
-| `userId` read from session cookie only | ☐ | |
-| PINs bcrypt-hashed, 5-attempt lockout in place | ☐ | |
-| Iframe stays mounted and visible | ☐ | |
-| Audio starts only after Listen is clicked | ☐ | |
-| All Supabase access server-side; no service role key in client bundles | ☐ | |
+| `/api/state` returns `serverTime`; clients use offset-corrected time | ☑ | `serverTime` parses; `Date.now()` appears at exactly the 3 offset sites in `lib/client` and **nowhere** in any component. Unit test cancels a 40s client-clock skew exactly. |
+| Normal transitions use `started_at + duration`, never `now()` | ☑ | The accumulating branch is `startedAt + duration_sec * 1000`. Proven live over a real 19s wait: the next start was **exactly** previous + 19s despite a late poll. |
+| Overshoot > 30s cold-starts instead of chaining | ☑ | `OVERSHOOT_COLD_START_SEC = 30`, compared as `overshoot < threshold`. Live: `started_at` moved back an hour with 15 songs queued burned **one**, leaving 15. |
+| `player_state` updates conditional on expected `current_item` | ☑ | `setCurrent(expected, …)`; null expectation uses `.is('current_item', null)` since SQL equality never matches null. A lost race re-reads, never retries. No unconditional update exists. |
+| Clients detect changes by `current_item` id, not position | ☑ | `loadedItemRef.current === playing.queueItemId`. Both the transition timer and the drift loop key on `playingId`, never the `playing` object. |
+| `onError` marks `failed` and advances | ☑ | `POST /api/queue/:id/failed` → `status: 'failed'` then `advancePast`. No retry anywhere in the player. Four simultaneous reports skipped exactly one song. |
+| Live streams and >10min videos rejected at add time | ☑ | Limit 600s. Live 422, 166-minute 422, non-embeddable 422 — against real videos, each with a distinct message. |
+| Skips are silent — no "skipped by X" anywhere | ☑ | Zero matches in shipped code or string literals (comments stripped), zero in the rendered page, zero in the payload. Skip response is `{skipped: true}`. |
+| `added_by` never sent for un-revealed anonymous songs | ☑ | Payload has no `added_by`, `addedById` or `show_name`; adder's name and uuid absent; rows carry exactly the nine contract fields; `serialize.ts` builds field-by-field with no spread. |
+| Day filter applies to queue list, not current-item lookup | ☑ | `loadQueueItem` filters by id only — asserted by parsing the function body. `pickNext` does filter by day. Midnight-crossing song is unit tested. |
+| `userId` read from session cookie only | ☑ | Exactly three routes read a body `userId`: `auth/claim` and `auth/set-pin` (the login step, worthless without the PIN) and `owner/reset-pin` (the *target*; caller comes from the session). `auth/continue` takes no body and ignores an injected one. |
+| PINs bcrypt-hashed, 5-attempt lockout in place | ☑ | Cost 12, 5 attempts, 15 minutes. All stored hashes match `$2[aby]$12$`. No plaintext PIN stored or logged. A correct PIN during lockout is still refused. |
+| Iframe stays mounted and visible | ☑ | No `display: none` declaration in the player CSS (comments stripped — the file explains the rule). Mount is not conditionally rendered. Songs change via `loadVideoById`. |
+| Audio starts only after Listen is clicked | ☑ | `listening` defaults false; the load effect is gated on it; the served page offers Listen, not Stop. |
+| All Supabase access server-side; no key in client bundles | ☑ | `db.ts` is `server-only`; no `NEXT_PUBLIC_` in shipped code or the env template; no supabase import in any component; all three secrets **and** the Supabase host absent from `.next/static`. |
+
+### Full regression, Phase 8
+
+`npm run verify` — every phase suite against a clean database:
+
+```
+auth-test        passed  34   queue-test       passed  32
+timeline-test    passed  32   player-test      passed  23
+ownership-test   passed  30   reveal-test      passed  31
+sync-static      passed  16   audit            passed  54
+TOTAL            passed 252   failed 0
+```
+
+Plus `npm test` — 54 unit tests. `build`, `typecheck` and `lint` clean.
+
+Two harness bugs were found and fixed during this audit, both worth remembering:
+
+- The source-scanning helper crashed on file arguments and returned empty output, so three
+  "expect zero matches" checks **passed because they had crashed**. It now exits non-zero
+  when it reads nothing.
+- A Phase 2 assertion counted titles across the whole payload, which was correct when
+  `playing` was always null and silently wrong afterwards. It now reads `upNext` only.
