@@ -15,7 +15,7 @@ where each session records what actually happened.
 | 3 — Timeline engine | done | 2026-08-16 | `6f8c759` |
 | 4 — Client player | done (with caveats — see below) | 2026-08-16 | `a8500c8` |
 | 5 — Sync & local controls | done (with caveats — see below) | 2026-08-16 | `203873f` |
-| 6 — Ownership actions | done | 2026-08-16 | uncommitted |
+| 6 — Ownership actions | done | 2026-08-16 | `4896e21` |
 | 7 — Reveal tickets | not started | | |
 | 8 — Hardening & deploy | not started | | |
 
