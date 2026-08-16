@@ -159,10 +159,13 @@ console.log(/&&|\?/.test(ret.split('</div>')[0])?'no':'yes')")"
 check "songs change via loadVideoById, not a remount" "yes" "$(grep -q 'loadVideoById' components/YouTubePlayer.tsx && echo yes || echo no)"
 
 echo
-echo "  14. Audio starts only after the user clicks Listen"
-check "listening defaults to false" "yes" "$(grep -q 'useState(false)' components/SignedIn.tsx && echo yes || echo no)"
-check "the load effect is gated on listening" "yes" "$(grep -q 'if (!player || !listening) return' components/YouTubePlayer.tsx && echo yes || echo no)"
-check "the served page offers Listen, not Stop" "yes" "$(curl -s -b "$A" "$BASE/" | grep -q 'Stop listening' && echo no || echo yes)"
+echo "  14. Audio starts only after a user gesture (now: unmuting)"
+check "the page opens muted" "yes" "$(grep -q 'useState(true)' components/SignedIn.tsx && echo yes || echo no)"
+check "nothing loads while muted, so a silent tab streams nothing" "yes" "$(grep -q 'if (muted || !playing)' components/YouTubePlayer.tsx && echo yes || echo no)"
+check "the served page shows the speaker off" "yes" "$(curl -s -b "$A" "$BASE/" | grep -q 'Speaker off' && echo yes || echo no)"
+# One flag, not two: a separate "listening" state is exactly how a button ends up claiming
+# sound is playing while the room hears silence.
+check "no listening flag survives anywhere" 0 "$(code components lib | grep -c 'listening' || true)"
 
 echo
 echo "  15. All Supabase access server-side; no secret in a client bundle"

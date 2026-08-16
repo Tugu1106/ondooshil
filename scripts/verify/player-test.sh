@@ -103,8 +103,9 @@ check "one song still waiting" 1 "$(jq_ 'return s.upNext.length')"
 echo
 echo "=== 4. Player invariants in the served page ==="
 curl -s -b "$J" "$BASE/" > "$H"
-check "the Listen button is present" "yes" "$(grep -q 'Listen' "$H" && echo yes || echo no)"
-check "the page opens NOT listening (no Stop button yet)" "yes" "$(grep -q 'Stop listening' "$H" && echo no || echo yes)"
+check "the speaker toggle is present" "yes" "$(grep -q 'Speaker o' "$H" && echo yes || echo no)"
+check "the page opens muted" "yes" "$(grep -q 'Speaker off' "$H" && echo yes || echo no)"
+check "and not already audible" "yes" "$(grep -q 'Speaker on' "$H" && echo no || echo yes)"
 # The on-air block renders whether or not anything is playing, because the iframe lives
 # inside it and must never be unmounted.
 check "the on-air block is rendered server-side" "yes" "$(grep -qE 'On air|Off air' "$H" && echo yes || echo no)"

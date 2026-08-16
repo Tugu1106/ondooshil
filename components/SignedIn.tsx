@@ -9,10 +9,10 @@ import type { NowPlaying as NowPlayingData, QueueRow, StateResponse } from '@/li
 
 import AccountMenu from './AccountMenu';
 import AddSongForm from './AddSongForm';
-import ListenControls from './ListenControls';
 import NowPlaying from './NowPlaying';
 import PlayedToday from './PlayedToday';
 import styles from './SignedIn.module.css';
+import SpeakerToggle from './SpeakerToggle';
 import UpNext from './UpNext';
 import YouTubePlayer from './YouTubePlayer';
 
@@ -39,9 +39,13 @@ export default function SignedIn({ user, users, initialState }: Props) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  // Local only. Never sent to the server, never affects anyone else's speaker.
-  const [listening, setListening] = useState(false);
-  const [muted, setMuted] = useState(false);
+  /**
+   * The one playback control, local to this browser. Opens muted: browsers refuse to
+   * autoplay audio without a user gesture, and unmuting is that gesture. There is no
+   * separate "listening" flag — one truth about whether this speaker is on, so the button
+   * cannot disagree with what the room can hear.
+   */
+  const [muted, setMuted] = useState(true);
   const [volume, setVolume] = useState(70);
 
   const { serverNow, refresh } = station;
@@ -180,7 +184,6 @@ export default function SignedIn({ user, users, initialState }: Props) {
             player={
               <YouTubePlayer
                 playing={station.state.playing}
-                listening={listening}
                 muted={muted}
                 volume={volume}
                 positionAt={positionAt}
@@ -188,11 +191,9 @@ export default function SignedIn({ user, users, initialState }: Props) {
               />
             }
             controls={
-              <ListenControls
-                listening={listening}
+              <SpeakerToggle
                 muted={muted}
                 volume={volume}
-                onListeningChange={setListening}
                 onMutedChange={setMuted}
                 onVolumeChange={setVolume}
               />

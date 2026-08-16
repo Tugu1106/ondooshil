@@ -322,6 +322,33 @@ to know what was already considered.
   or renamed: the signed-in check now looks for the account menu rather than "Signed in
   as", and the player check accepts "On air"/"Off air" rather than "Now playing".
 
+**Speaker rework (2026-08-16)** — after the user reported the Listen button desyncing from
+the audio, and asked for the radio model instead of an opt-in.
+
+- **There is no `listening` state any more. `muted` is the single truth.** The bug was two
+  pieces of state describing one thing: React's `listening` and whether the iframe was
+  actually producing sound. They drift, and then the button claims sound while the room
+  hears silence. One flag cannot disagree with itself. An audit check now asserts the word
+  `listening` appears nowhere in `components/` or `lib/`.
+- **The page opens muted.** Browsers refuse to autoplay audio without a user gesture — this
+  is what the Listen button really existed for. Unmuting *is* the gesture, so spec §7's
+  requirement is still met with one control instead of two.
+- **Nothing is loaded while muted**, so a silent tab streams no video. That preserves the
+  bandwidth argument in spec §7 (six browsers streaming for one speaker) without the user
+  ever having to think about it.
+- **The player heals itself.** Anything that pauses it — a throttled background tab, a
+  suspended iframe — is treated as a fault, not an instruction: it resumes and re-seeks to
+  the live position. A `visibilitychange` handler does the same on returning to the tab,
+  whose timers were throttled while it was hidden.
+- **YouTube's own controls are hidden (`controls: 0`).** You cannot pause a radio, so there
+  must not be a pause button — and since the player auto-resumes anything that pauses it,
+  leaving one visible would look broken.
+- `ListenControls.tsx` became `SpeakerToggle.tsx`. BUILD-PLAN's file list still names the
+  old one.
+- **The original button-flip was never reproduced** — no browser automation here. The
+  redesign removes the state that could desync rather than diagnosing it, and the
+  self-healing covers the silent-player half. Worth re-checking in use.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the

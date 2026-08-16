@@ -106,6 +106,10 @@ export async function createPlayer(
         modestbranding: 1,
         disablekb: 1,
         playsinline: 1,
+        // No transport controls at all. You cannot pause a radio, so there must not be a
+        // pause button — and since the player auto-resumes anything that pauses it,
+        // leaving one visible would just look broken.
+        controls: 0,
       },
       events: {
         onReady: () => resolve(player),
