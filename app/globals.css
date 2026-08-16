@@ -1,0 +1,63 @@
+/*
+ * Base tokens and resets. Components added from Phase 2 onward build on these; anything
+ * specific to one component belongs in its own module.css, not here.
+ */
+
+:root {
+  --bg: #0e0f13;
+  --surface: #171921;
+  --surface-raised: #1f222c;
+  --border: #2a2e3a;
+  --text: #e8e9ee;
+  --text-muted: #9aa0ae;
+  --accent: #ff7a45;
+  --danger: #ff5c5c;
+
+  --radius: 10px;
+  --gap: 16px;
+
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Inputs and buttons must stay comfortably tappable: the add flow is used from phones. */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  min-height: 44px;
+}
+
+a {
+  color: var(--accent);
+}
+
+code {
+  font-family: var(--font-mono);
+}
