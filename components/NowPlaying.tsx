@@ -24,7 +24,10 @@ type Props = {
   onReveal: (playing: NowPlayingData) => void;
   revealsRemaining: number;
   busy: boolean;
-  children: React.ReactNode;
+  /** The player. Rendered unconditionally — see the note on `.onAir`. */
+  player: React.ReactNode;
+  /** Listen / mute / volume, all local to this browser. */
+  controls: React.ReactNode;
 };
 
 export default function NowPlaying({
@@ -34,7 +37,8 @@ export default function NowPlaying({
   onReveal,
   revealsRemaining,
   busy,
-  children,
+  player,
+  controls,
 }: Props) {
   const [, tick] = useState(0);
 
@@ -48,8 +52,8 @@ export default function NowPlaying({
   const percent = playing ? Math.min(100, (position / playing.durationSec) * 100) : 0;
 
   return (
-    <div className={styles.card}>
-      <h2 className={styles.sectionTitle}>Now playing</h2>
+    <div className={styles.onAir}>
+      <h2 className={styles.sectionTitle}>{playing ? 'On air' : 'Off air'}</h2>
 
       <div className={styles.layout}>
         <div className={styles.details}>
@@ -92,9 +96,11 @@ export default function NowPlaying({
           )}
         </div>
 
-        {/* The player mounts here and stays mounted, playing or not. */}
-        {children}
+        {/* Mounted and visible whether or not anything is on air. */}
+        {player}
       </div>
+
+      {controls}
     </div>
   );
 }

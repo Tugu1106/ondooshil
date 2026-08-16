@@ -1,18 +1,25 @@
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  margin-bottom: var(--gap);
+/*
+ * The present, in the middle of the station container. Given weight so it is obvious
+ * where "now" sits between what has played and what is coming.
+ *
+ * This block renders whether or not anything is on air. The player lives inside it and
+ * must never be unmounted — some browsers pause playback for a hidden or torn-down
+ * iframe, and that bug looks like the station stopping at random.
+ */
+.onAir {
+  padding: 18px 20px;
+  background: var(--surface-raised);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .sectionTitle {
   margin: 0 0 12px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--accent);
 }
 
 .layout {

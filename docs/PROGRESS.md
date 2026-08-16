@@ -301,6 +301,27 @@ to know what was already considered.
 - **The deploy itself is the user's step** — it needs their GitHub and Vercel accounts.
   Everything the deploy depends on is prepared and committed.
 
+**Post-Phase 8 polish (2026-08-16)** — requested after the build, not part of any phase.
+
+- **The "Signed in as / Log out" header is gone**, replaced by a conventional account menu
+  at the top right: avatar initial, name, dropdown.
+- **The always-visible owner panel is gone.** "Reset a PIN…" now lives in that dropdown and
+  opens a dialog. It appears **only for `is_owner`**; everyone else sees just "Sign out".
+  Read deliberately as the owner power being relocated — there is no self-service PIN
+  change in the spec, and adding one would need a new endpoint that verifies the old PIN.
+- **One station container, read top to bottom as time runs**: Earlier today → On air →
+  Up next. History is capped at ~190px and scrolls internally so a busy afternoon cannot
+  push the song on air off the screen, and it is ordered **oldest first** so it flows down
+  into the present.
+- **Adding a song is a separate panel** — a sidebar on desktop, and ordered *first* on
+  narrow screens, since pasting a link is what people open the app on a phone to do.
+- **The on-air block renders whether or not anything is playing.** The iframe lives inside
+  it, so making that block conditional would unmount the player — landmine 13. `Off air` is
+  the empty state, not an absent section.
+- **Two verification assertions were updated**, both keyed to UI text this change removed
+  or renamed: the signed-in check now looks for the account menu rather than "Signed in
+  as", and the player check accepts "On air"/"Off air" rather than "Now playing".
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the

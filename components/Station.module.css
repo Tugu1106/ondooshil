@@ -1,108 +1,50 @@
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  margin-bottom: var(--gap);
+/*
+ * The one station container: past, present, future in a single vertical flow, read top to
+ * bottom. History runs into the song on air, which runs into what is coming.
+ */
+
+.section {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section:last-child {
+  border-bottom: none;
+}
+
+/* The present, given weight so it is obvious where "now" is in the flow. */
+.onAir {
+  background: var(--surface-raised);
+  border-top: 1px solid var(--border);
 }
 
 .sectionTitle {
   margin: 0 0 12px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
 
-/* --- add form --------------------------------------------------------- */
-/* Mobile first: people paste from their phones, so the field and the button
-   are both full width and comfortably tappable one-handed. */
-
-.form {
-  display: grid;
-  gap: 12px;
-}
-
-.url {
-  width: 100%;
-  padding: 14px 16px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 16px; /* 16px keeps iOS from zooming on focus */
-}
-
-.url:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
-.controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.checkbox {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-height: 44px;
-  color: var(--text-muted);
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.checkbox input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--accent);
-}
-
-.add {
-  padding: 12px 28px;
-  background: var(--accent);
-  border: none;
-  border-radius: var(--radius);
-  color: #1a0d06;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.add:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.message {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: var(--radius);
-  font-size: 14px;
-}
-
-.failure {
-  background: rgba(255, 92, 92, 0.1);
-  border: 1px solid var(--danger);
-  color: var(--danger);
-}
-
-.success {
-  background: rgba(255, 122, 69, 0.1);
-  border: 1px solid var(--accent);
+.onAirTitle {
   color: var(--accent);
 }
 
-/* --- queue lists ------------------------------------------------------ */
+/*
+ * History is capped so a busy afternoon cannot push the song on air off the screen.
+ * Oldest at the top, newest against the on-air block, so time reads downward.
+ */
+.history {
+  max-height: 190px;
+  overflow-y: auto;
+}
 
 .row {
   display: flex;
   align-items: baseline;
   gap: 12px;
-  padding: 10px 0;
+  padding: 9px 0;
   border-top: 1px solid var(--border);
 }
 
@@ -111,7 +53,7 @@
 }
 
 .position {
-  min-width: 22px;
+  min-width: 20px;
   color: var(--text-muted);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
@@ -198,4 +140,79 @@
 
 .remove:disabled {
   opacity: 0.4;
+}
+
+/* --- add form ---------------------------------------------------------- */
+/* Mobile first: people paste from their phones, so the field and the button are both
+   full width and comfortably tappable one-handed. */
+
+.form {
+  display: grid;
+  gap: 12px;
+}
+
+.url {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 16px; /* 16px keeps iOS from zooming on focus */
+}
+
+.url:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.checkbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.add {
+  width: 100%;
+  padding: 12px 28px;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  color: #1a0d06;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.add:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.message {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.failure {
+  background: rgba(255, 92, 92, 0.1);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+
+.success {
+  background: rgba(255, 122, 69, 0.1);
+  border: 1px solid var(--accent);
+  color: var(--accent);
 }

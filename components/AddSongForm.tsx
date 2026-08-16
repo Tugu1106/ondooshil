@@ -56,10 +56,7 @@ export default function AddSongForm({ onAdded }: Props) {
   }
 
   return (
-    <div className={styles.card}>
-      <h2 className={styles.sectionTitle}>Add a song</h2>
-
-      <form className={styles.form} onSubmit={submit}>
+    <form className={styles.form} onSubmit={submit}>
         <input
           className={styles.url}
           type="url"
@@ -70,24 +67,21 @@ export default function AddSongForm({ onAdded }: Props) {
           onChange={(event) => setUrl(event.target.value)}
         />
 
-        <div className={styles.controls}>
-          <label className={styles.checkbox}>
-            <input
-              type="checkbox"
-              checked={showName}
-              onChange={(event) => setShowName(event.target.checked)}
-            />
-            Show my name
-          </label>
+      <label className={styles.checkbox}>
+        <input
+          type="checkbox"
+          checked={showName}
+          onChange={(event) => setShowName(event.target.checked)}
+        />
+        Show my name
+      </label>
 
-          <button className={styles.add} disabled={busy || !url.trim()}>
-            {busy ? 'Checking…' : 'Add'}
-          </button>
-        </div>
+      <button className={styles.add} disabled={busy || !url.trim()}>
+        {busy ? 'Checking…' : 'Add to the queue'}
+      </button>
 
-        {failure && <p className={`${styles.message} ${styles.failure}`}>{failure}</p>}
-        {success && <p className={`${styles.message} ${styles.success}`}>{success}</p>}
-      </form>
-    </div>
+      {failure && <p className={`${styles.message} ${styles.failure}`}>{failure}</p>}
+      {success && <p className={`${styles.message} ${styles.success}`}>{success}</p>}
+    </form>
   );
 }

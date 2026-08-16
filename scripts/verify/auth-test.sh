@@ -34,7 +34,8 @@ check "responds with the user" "User 3" "$(grep -o '"name":"[^"]*"' /tmp/body | 
 echo
 echo "=== 2. Signed-in page ==="
 body=$(curl -s -b "$JAR" "$BASE/")
-check "page shows the signed-in view" "yes" "$(echo "$body" | grep -q 'Signed in as' && echo yes || echo no)"
+# The account menu only exists once you are through the gate.
+check "page shows the signed-in view" "yes" "$(echo "$body" | grep -q 'aria-haspopup="menu"' && echo yes || echo no)"
 check "page shows User 3" "yes" "$(echo "$body" | grep -q 'User 3' && echo yes || echo no)"
 
 echo

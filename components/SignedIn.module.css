@@ -1,97 +1,87 @@
-.wrap {
-  max-width: 560px;
+.page {
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 48px 20px;
+  padding: 24px 20px 64px;
 }
 
-.brand {
-  margin: 0 0 4px;
-  font-size: 26px;
-  letter-spacing: -0.01em;
-}
-
-.tagline {
-  margin: 0 0 32px;
-  color: var(--text-muted);
-  font-size: 14px;
-}
-
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 24px;
-  margin-bottom: var(--gap);
-}
-
-.row {
+.header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  flex-wrap: wrap;
+  margin-bottom: 24px;
 }
 
-.prompt {
-  margin: 0 0 2px;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.who {
+.brand {
   margin: 0;
   font-size: 22px;
-  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
-.secondary {
-  padding: 10px 18px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
-  font-size: 14px;
-}
-
-.secondary:hover:not(:disabled) {
-  border-color: var(--accent);
-}
-
-.placeholder {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 14px;
-}
-
-.heading {
-  margin: 0 0 4px;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.hint {
-  margin: 0 0 16px;
+.tagline {
+  margin: 2px 0 0;
   color: var(--text-muted);
   font-size: 13px;
 }
 
-.resetRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 0;
-  border-top: 1px solid var(--border);
-  font-size: 15px;
+/*
+ * Two panels: the station on the left, adding on the right. Deliberately separate —
+ * pasting a link and watching the broadcast are different jobs.
+ */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--gap);
+  align-items: start;
 }
 
-.unclaimed {
-  font-size: 12px;
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* On a phone the add box comes first: that is the job people open the app to do. */
+  .addPanel {
+    order: -1;
+  }
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.addPanel {
+  padding: 20px;
+}
+
+.panelTitle {
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--text-muted);
+}
+
+.error {
+  margin: 0 0 var(--gap);
+  padding: 10px 12px;
+  background: rgba(255, 92, 92, 0.1);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  color: var(--danger);
+  font-size: 14px;
 }
 
 .notice {
-  margin: 12px 0 0;
-  font-size: 13px;
+  margin: 0 0 var(--gap);
+  padding: 10px 12px;
+  background: rgba(255, 122, 69, 0.1);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
   color: var(--accent);
+  font-size: 14px;
 }

@@ -34,7 +34,7 @@ type Props = {
 
 export default function UpNext({ rows, onRemove, onReveal, revealsRemaining, busy }: Props) {
   return (
-    <div className={styles.card}>
+    <div className={styles.section}>
       <h2 className={styles.sectionTitle}>Up next</h2>
 
       {rows.length === 0 ? (

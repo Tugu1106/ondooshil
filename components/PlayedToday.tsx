@@ -33,14 +33,18 @@ function statusNote(row: QueueRow): string | null {
 }
 
 export default function PlayedToday({ rows, onReveal, revealsRemaining, busy }: Props) {
-  return (
-    <div className={styles.card}>
-      <h2 className={styles.sectionTitle}>Played today</h2>
+  // Oldest first, so time reads downward into the song on air below.
+  const chronological = [...rows].reverse();
 
-      {rows.length === 0 ? (
+  return (
+    <div className={styles.section}>
+      <h2 className={styles.sectionTitle}>Earlier today</h2>
+
+      {chronological.length === 0 ? (
         <p className={styles.empty}>Nothing yet today.</p>
       ) : (
-        rows.map((row) => {
+        <div className={styles.history}>
+        {chronological.map((row) => {
           const note = statusNote(row);
           const who = row.isMine ? 'you' : row.addedByName;
           const meta = [who, note].filter(Boolean).join(' · ');
@@ -63,7 +67,8 @@ export default function PlayedToday({ rows, onReveal, revealsRemaining, busy }: 
               <span className={styles.duration}>{formatDuration(row.durationSec)}</span>
             </div>
           );
-        })
+        })}
+        </div>
       )}
     </div>
   );

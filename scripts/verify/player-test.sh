@@ -105,7 +105,9 @@ echo "=== 4. Player invariants in the served page ==="
 curl -s -b "$J" "$BASE/" > "$H"
 check "the Listen button is present" "yes" "$(grep -q 'Listen' "$H" && echo yes || echo no)"
 check "the page opens NOT listening (no Stop button yet)" "yes" "$(grep -q 'Stop listening' "$H" && echo no || echo yes)"
-check "now playing is rendered server-side" "yes" "$(grep -q 'Now playing' "$H" && echo yes || echo no)"
+# The on-air block renders whether or not anything is playing, because the iframe lives
+# inside it and must never be unmounted.
+check "the on-air block is rendered server-side" "yes" "$(grep -qE 'On air|Off air' "$H" && echo yes || echo no)"
 check "no display:none declaration in the player styles" "yes" "$(node -e "
 // Strip comments first: the file *explains* why display:none is forbidden, and that
 // prose must not be mistaken for a declaration.
