@@ -2,6 +2,7 @@
 
 import type { QueueRow } from '@/lib/types';
 
+import RevealButton from './RevealButton';
 import styles from './Station.module.css';
 
 /**
@@ -26,10 +27,12 @@ function attribution(row: QueueRow): string | null {
 type Props = {
   rows: QueueRow[];
   onRemove: (row: QueueRow) => void;
+  onReveal: (row: QueueRow) => void;
+  revealsRemaining: number;
   busy: boolean;
 };
 
-export default function UpNext({ rows, onRemove, busy }: Props) {
+export default function UpNext({ rows, onRemove, onReveal, revealsRemaining, busy }: Props) {
   return (
     <div className={styles.card}>
       <h2 className={styles.sectionTitle}>Up next</h2>
@@ -48,6 +51,14 @@ export default function UpNext({ rows, onRemove, busy }: Props) {
                   <span className={`${styles.meta} ${row.isMine ? styles.mine : ''}`}>{who}</span>
                 )}
               </span>
+              {/* Only where the adder is hidden from this viewer. */}
+              {row.addedByName === null && (
+                <RevealButton
+                  remaining={revealsRemaining}
+                  busy={busy}
+                  onReveal={() => onReveal(row)}
+                />
+              )}
               <span className={styles.duration}>{formatDuration(row.durationSec)}</span>
               {/* Only ever on your own rows. The server enforces it regardless. */}
               {row.canRemove && (

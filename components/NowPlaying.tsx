@@ -6,6 +6,7 @@ import type { NowPlaying as NowPlayingData } from '@/lib/types';
 
 import { formatDuration } from './UpNext';
 import styles from './Player.module.css';
+import RevealButton from './RevealButton';
 
 /**
  * The now-playing display (spec §12): title, progress, and the adder's name only when the
@@ -20,11 +21,21 @@ type Props = {
   playing: NowPlayingData | null;
   positionAt: (playing: NowPlayingData) => number;
   onSkip: (playing: NowPlayingData) => void;
+  onReveal: (playing: NowPlayingData) => void;
+  revealsRemaining: number;
   busy: boolean;
   children: React.ReactNode;
 };
 
-export default function NowPlaying({ playing, positionAt, onSkip, busy, children }: Props) {
+export default function NowPlaying({
+  playing,
+  positionAt,
+  onSkip,
+  onReveal,
+  revealsRemaining,
+  busy,
+  children,
+}: Props) {
   const [, tick] = useState(0);
 
   // Re-render once a second so the bar advances. Cheap, and unrelated to the 3s poll.
@@ -45,7 +56,19 @@ export default function NowPlaying({ playing, positionAt, onSkip, busy, children
           {playing ? (
             <>
               <p className={styles.title}>{playing.title}</p>
-              <p className={styles.by}>{playing.addedByName ?? 'anonymous'}</p>
+              <p className={styles.by}>
+                {playing.addedByName ?? 'anonymous'}
+                {playing.addedByName === null && (
+                  <>
+                    {' '}
+                    <RevealButton
+                      remaining={revealsRemaining}
+                      busy={busy}
+                      onReveal={() => onReveal(playing)}
+                    />
+                  </>
+                )}
+              </p>
               <div className={styles.progress}>
                 <div className={styles.bar} style={{ width: `${percent}%` }} />
               </div>

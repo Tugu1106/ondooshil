@@ -16,7 +16,7 @@ where each session records what actually happened.
 | 4 — Client player | done (with caveats — see below) | 2026-08-16 | `a8500c8` |
 | 5 — Sync & local controls | done (with caveats — see below) | 2026-08-16 | `203873f` |
 | 6 — Ownership actions | done | 2026-08-16 | `4896e21` |
-| 7 — Reveal tickets | not started | | |
+| 7 — Reveal tickets | done | 2026-08-16 | uncommitted |
 | 8 — Hardening & deploy | not started | | |
 
 Status values: `not started` · `in progress` · `done` · `done (with caveats — see below)`
@@ -261,6 +261,29 @@ to know what was already considered.
   `markFailedAndAdvance`, so the three "move the station along" paths sit together and
   share the same guard style.
 
+**Phase 7 (2026-08-16)**
+
+- **The free cases are answered before the budget is consulted.** Your own song, an
+  opted-in name, and a song you already revealed today all return the name without
+  spending. Checking the budget first would make a repeat look like a fourth reveal and
+  refuse it once the three are gone — which is precisely what the spec's "revealing the
+  same song twice does not cost a second ticket" forbids.
+- **The insert is an `upsert` on `(user_id, queue_item_id)`, not an insert.** The primary
+  key has no day in it, so a song revealed yesterday and revealed again today would
+  otherwise collide and throw. A new day is a new budget, so the upsert correctly costs a
+  ticket and re-stamps `day` to today. **Verified explicitly** — see below.
+- **The song is looked up by id with no day filter**, so the one on air can be revealed
+  even if it started before midnight.
+- **Reveal is offered on the playing song, the queue, and today's history** — anywhere the
+  adder is hidden from this viewer. Revealing after hearing something is the main case the
+  feature exists for.
+- **The button carries the remaining count and disables at zero** rather than failing after
+  the click.
+- **Accepted race, not worth fixing here:** two simultaneous reveals of *different* songs
+  could both pass the budget check and spend a fourth ticket. Serialising it needs a
+  transaction or an RPC and another migration. At six people this will not happen, and the
+  primary key already makes the common case — the same song twice — exact.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the
@@ -485,23 +508,58 @@ failed.** `build`, `typecheck` and `lint` clean.
   field, the row still carries exactly the nine contract fields, and neither the rendered
   page nor any shipped code or string literal contains "skipped by".
 
+### Phase 7 exit verification (2026-08-16)
+
+**31 live assertions plus a scripted day-rollover check.** **0 failed.** `build`,
+`typecheck` and `lint` clean.
+
+- **Spending**: the first reveal returns the name and leaves two; the row then shows the
+  name and `revealed: true` while every other row stays anonymous.
+- **Repeats are free**: revealing the same song again leaves the budget at two — and,
+  critically, **is still free after all three are spent** (200, not 429), which is the
+  check-order rule above.
+- **The budget runs out at three**: the fourth reveal is 429 and that song stays anonymous.
+- **Free cases cost nothing**: your own song and an opted-in name both return 200 with the
+  budget untouched at three.
+- **Privacy**: User 2, who spent nothing, sees `revealed: false` on every row regardless of
+  how many tickets User 3 burned; no field names a revealer; User 3's uuid appears nowhere;
+  and User 3's *name* appears exactly once — on the song they opted in to show — so one
+  person's `showName` does not unmask their other songs.
+- **Day rollover, verified directly**: a reveal dated yesterday does not count against
+  today's budget (3 remaining), the name is hidden again, and revealing today succeeds,
+  costs a ticket (2 remaining), and re-stamps the stored `day` to today rather than
+  colliding on the primary key.
+- Unauthenticated is 401; an unknown song is 404.
+
 ## Notes for later phases
 
 Work spotted mid-session that belongs to a later phase. Recorded here instead of being
 built early.
 
-- **Phase 7's reveal endpoint** slots into `lib/reveals.ts`, which already has the read
-  side (`revealedTodayBy`, `revealsRemaining`, `DAILY_REVEAL_LIMIT`). The insert should be
-  idempotent on the `(user_id, queue_item_id)` primary key so re-revealing costs nothing —
-  check for an existing row *before* counting the budget, or a repeat reveal will be
-  refused once the three are spent.
-- **A reveal must apply to the playing song too**, not just queue rows: `toNowPlaying`
-  already consults `revealedItemIds` through the shared `nameFor`.
-- **Reveals are private.** Nothing may tell the room that a reveal happened, and
-  `revealsRemaining` belongs only to the viewer's own `me` object — never per-row, never
-  for anyone else.
-- **Writing a test for the "reveal is free the second time" rule** needs care: spend one,
-  spend it again, and assert `revealsRemaining` is still 2 rather than 1.
+**Phase 8 is the last one. It is an audit, not a feature phase.** Three parts:
+
+1. **Walk the whole §16 landmine checklist** as a fresh audit against the actual code. Do
+   not trust the per-phase claims in this file — re-verify each of the fifteen items. The
+   table at the bottom of this file is where the evidence goes.
+2. **Clear the six deferred browser checks** from the Phase 4 and Phase 5 caveats above.
+   These need a human with the app open; they are the only exit criteria in the whole build
+   that no script has covered.
+3. **Deploy** (SETUP.md Group C): push to GitHub, import to Vercel, set all five env vars
+   for all three environments with **no `NEXT_PUBLIC_` prefixes**, generate a *separate*
+   `SESSION_SECRET` for production, deploy, then check `/api/health` on the live URL.
+
+Also in Phase 8:
+
+- **Replace the placeholder names** in Supabase → Table Editor → `users`, *before* anyone
+  claims a name, so nobody sets a PIN on the wrong row.
+- **Consider `regions` in `vercel.json`** — the database is in Seoul (`icn1`), and Vercel
+  Hobby defaults to Washington DC. Matching them removes a trans-Pacific round trip from
+  every one of the ~5 queries `/api/state` makes every 3 seconds.
+- **Grep the built client bundle** for the service role key, the session secret and the
+  YouTube key, as Phase 1 did. `.next/static` must contain none of them.
+- **A README**: env setup, running migrations, resetting a PIN.
+- Optional: a `.gitattributes` with `* text=auto eol=lf` to stop the CRLF warnings that
+  every commit in this build has produced.
 - **Phase 8 must include the six deferred browser checks** from Phases 4 and 5, listed in
   the caveat sections above, alongside the §16 landmine list.
 - **Query count on the hot path is now about five** per poll (player_state, current item,

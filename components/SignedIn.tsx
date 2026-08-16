@@ -79,6 +79,24 @@ export default function SignedIn({ user, users, initialState }: Props) {
     [refresh],
   );
 
+  /**
+   * Spend a ticket. Private: the answer comes back only to this browser, and the refresh
+   * that follows re-serialises the row with the name now visible to this viewer alone.
+   */
+  const handleReveal = useCallback(
+    async (row: { id: string }) => {
+      setBusy(true);
+      const response = await fetch(`/api/reveal/${row.id}`, { method: 'POST' });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        setNotice(payload?.error?.message ?? 'Could not reveal that one.');
+      }
+      await refresh();
+      setBusy(false);
+    },
+    [refresh],
+  );
+
   const handleRemove = useCallback(
     async (row: QueueRow) => {
       setBusy(true);
@@ -144,6 +162,8 @@ export default function SignedIn({ user, users, initialState }: Props) {
         playing={station.state.playing}
         positionAt={positionAt}
         onSkip={handleSkip}
+        onReveal={(playing) => handleReveal({ id: playing.queueItemId })}
+        revealsRemaining={station.state.me.revealsRemaining}
         busy={busy}
       >
         <YouTubePlayer
@@ -169,8 +189,19 @@ export default function SignedIn({ user, users, initialState }: Props) {
 
       <AddSongForm onAdded={station.refresh} />
 
-      <UpNext rows={station.state.upNext} onRemove={handleRemove} busy={busy} />
-      <PlayedToday rows={station.state.playedToday} />
+      <UpNext
+        rows={station.state.upNext}
+        onRemove={handleRemove}
+        onReveal={handleReveal}
+        revealsRemaining={station.state.me.revealsRemaining}
+        busy={busy}
+      />
+      <PlayedToday
+        rows={station.state.playedToday}
+        onReveal={handleReveal}
+        revealsRemaining={station.state.me.revealsRemaining}
+        busy={busy}
+      />
 
       {user.isOwner && (
         <div className={styles.card}>

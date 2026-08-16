@@ -156,6 +156,28 @@
   font-size: 14px;
 }
 
+.reveal {
+  min-height: 28px;
+  padding: 4px 10px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.reveal:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.reveal:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .remove {
   min-height: 28px;
   width: 28px;

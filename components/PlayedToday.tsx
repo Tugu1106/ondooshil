@@ -2,6 +2,7 @@
 
 import type { QueueRow } from '@/lib/types';
 
+import RevealButton from './RevealButton';
 import styles from './Station.module.css';
 import { formatDuration } from './UpNext';
 
@@ -15,6 +16,9 @@ import { formatDuration } from './UpNext';
 
 type Props = {
   rows: QueueRow[];
+  onReveal: (row: QueueRow) => void;
+  revealsRemaining: number;
+  busy: boolean;
 };
 
 function statusNote(row: QueueRow): string | null {
@@ -28,7 +32,7 @@ function statusNote(row: QueueRow): string | null {
   }
 }
 
-export default function PlayedToday({ rows }: Props) {
+export default function PlayedToday({ rows, onReveal, revealsRemaining, busy }: Props) {
   return (
     <div className={styles.card}>
       <h2 className={styles.sectionTitle}>Played today</h2>
@@ -49,6 +53,13 @@ export default function PlayedToday({ rows }: Props) {
                   <span className={`${styles.meta} ${row.isMine ? styles.mine : ''}`}>{meta}</span>
                 )}
               </span>
+              {row.addedByName === null && (
+                <RevealButton
+                  remaining={revealsRemaining}
+                  busy={busy}
+                  onReveal={() => onReveal(row)}
+                />
+              )}
               <span className={styles.duration}>{formatDuration(row.durationSec)}</span>
             </div>
           );
