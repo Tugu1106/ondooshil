@@ -16,7 +16,7 @@ where each session records what actually happened.
 | 4 — Client player | done (with caveats — see below) | 2026-08-16 | `a8500c8` |
 | 5 — Sync & local controls | done (with caveats — see below) | 2026-08-16 | `203873f` |
 | 6 — Ownership actions | done | 2026-08-16 | `4896e21` |
-| 7 — Reveal tickets | done | 2026-08-16 | uncommitted |
+| 7 — Reveal tickets | done | 2026-08-16 | `8449216` |
 | 8 — Hardening & deploy | not started | | |
 
 Status values: `not started` · `in progress` · `done` · `done (with caveats — see below)`
