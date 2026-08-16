@@ -5,7 +5,7 @@ import { useCallback, useState } from 'react';
 
 import type { PickerUser, PublicUser } from '@/lib/auth';
 import { positionSec, useStation } from '@/lib/client/useStation';
-import type { NowPlaying as NowPlayingData, StateResponse } from '@/lib/types';
+import type { NowPlaying as NowPlayingData, QueueRow, StateResponse } from '@/lib/types';
 
 import AddSongForm from './AddSongForm';
 import ListenControls from './ListenControls';
@@ -66,6 +66,33 @@ export default function SignedIn({ user, users, initialState }: Props) {
     [refresh],
   );
 
+  /** Adder-only, and silent: nothing here or anywhere records who pressed it. */
+  const handleSkip = useCallback(
+    async (playing: NowPlayingData) => {
+      setBusy(true);
+      await fetch(`/api/queue/${playing.queueItemId}/skip`, { method: 'POST' }).catch(
+        () => undefined,
+      );
+      await refresh();
+      setBusy(false);
+    },
+    [refresh],
+  );
+
+  const handleRemove = useCallback(
+    async (row: QueueRow) => {
+      setBusy(true);
+      const response = await fetch(`/api/queue/${row.id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        setNotice(payload?.error?.message ?? 'Could not remove that one.');
+      }
+      await refresh();
+      setBusy(false);
+    },
+    [refresh],
+  );
+
   async function logout() {
     setBusy(true);
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -113,7 +140,12 @@ export default function SignedIn({ user, users, initialState }: Props) {
         </div>
       </div>
 
-      <NowPlaying playing={station.state.playing} positionAt={positionAt}>
+      <NowPlaying
+        playing={station.state.playing}
+        positionAt={positionAt}
+        onSkip={handleSkip}
+        busy={busy}
+      >
         <YouTubePlayer
           playing={station.state.playing}
           listening={listening}
@@ -137,7 +169,7 @@ export default function SignedIn({ user, users, initialState }: Props) {
 
       <AddSongForm onAdded={station.refresh} />
 
-      <UpNext rows={station.state.upNext} />
+      <UpNext rows={station.state.upNext} onRemove={handleRemove} busy={busy} />
       <PlayedToday rows={station.state.playedToday} />
 
       {user.isOwner && (

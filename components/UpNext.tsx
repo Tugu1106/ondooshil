@@ -25,9 +25,11 @@ function attribution(row: QueueRow): string | null {
 
 type Props = {
   rows: QueueRow[];
+  onRemove: (row: QueueRow) => void;
+  busy: boolean;
 };
 
-export default function UpNext({ rows }: Props) {
+export default function UpNext({ rows, onRemove, busy }: Props) {
   return (
     <div className={styles.card}>
       <h2 className={styles.sectionTitle}>Up next</h2>
@@ -47,6 +49,18 @@ export default function UpNext({ rows }: Props) {
                 )}
               </span>
               <span className={styles.duration}>{formatDuration(row.durationSec)}</span>
+              {/* Only ever on your own rows. The server enforces it regardless. */}
+              {row.canRemove && (
+                <button
+                  className={styles.remove}
+                  disabled={busy}
+                  onClick={() => onRemove(row)}
+                  aria-label={`Remove ${row.title}`}
+                  title="Remove"
+                >
+                  ×
+                </button>
+              )}
             </div>
           );
         })

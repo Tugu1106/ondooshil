@@ -19,10 +19,12 @@ import styles from './Player.module.css';
 type Props = {
   playing: NowPlayingData | null;
   positionAt: (playing: NowPlayingData) => number;
+  onSkip: (playing: NowPlayingData) => void;
+  busy: boolean;
   children: React.ReactNode;
 };
 
-export default function NowPlaying({ playing, positionAt, children }: Props) {
+export default function NowPlaying({ playing, positionAt, onSkip, busy, children }: Props) {
   const [, tick] = useState(0);
 
   // Re-render once a second so the bar advances. Cheap, and unrelated to the 3s poll.
@@ -51,6 +53,15 @@ export default function NowPlaying({ playing, positionAt, children }: Props) {
                 <span>{formatDuration(Math.floor(position))}</span>
                 <span>{formatDuration(playing.durationSec)}</span>
               </div>
+              {/*
+                Shown only to the adder. There is no vote-skip and no override: everyone
+                else waits it out, exactly as they would with a radio.
+              */}
+              {playing.canSkip && (
+                <button className={styles.skip} disabled={busy} onClick={() => onSkip(playing)}>
+                  Skip my song
+                </button>
+              )}
             </>
           ) : (
             // Silence is the correct empty state. No filler, no fallback playlist.

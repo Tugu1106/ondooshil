@@ -15,7 +15,7 @@ where each session records what actually happened.
 | 3 — Timeline engine | done | 2026-08-16 | `6f8c759` |
 | 4 — Client player | done (with caveats — see below) | 2026-08-16 | `a8500c8` |
 | 5 — Sync & local controls | done (with caveats — see below) | 2026-08-16 | `203873f` |
-| 6 — Ownership actions | not started | | |
+| 6 — Ownership actions | done | 2026-08-16 | uncommitted |
 | 7 — Reveal tickets | not started | | |
 | 8 — Hardening & deploy | not started | | |
 
@@ -241,6 +241,26 @@ to know what was already considered.
 - **Volume defaults to 70, unmuted, not listening.** Local-only state in `SignedIn`; it is
   never persisted and never sent anywhere.
 
+**Phase 6 (2026-08-16)**
+
+- **The song on air cannot be removed — it returns 409 `on_air`, pointing at skip.** Its
+  status is still `pending` (which song is current is owned by `player_state`), so the
+  ownership and status checks alone would have let it through, and the delete would then
+  have failed at the foreign key `player_state.current_item → queue.id` as a 500. Caught
+  and turned into a real answer.
+- **Removing a song deletes any reveal tickets spent on it**, because
+  `reveals.queue_item_id` is a foreign key. The side effect is that whoever paid to unmask
+  it gets their ticket back. That seems the fairer way round given the song will now never
+  play, and the alternative — a soft delete — would leave removed songs visible in a
+  history they never earned.
+- **Remove is a hard delete, not a status change.** A removed song never played, so there
+  is no history worth keeping, and the test asserts it does *not* appear in `playedToday`.
+- **Skip reuses `advancePast()`**, the same primitive as the failed-video path: the next
+  song starts at `now()`, since the skipped one did not run its length.
+- **`skipCurrent` and `removePending` live in `lib/playback.ts`** alongside
+  `markFailedAndAdvance`, so the three "move the station along" paths sit together and
+  share the same guard style.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the
@@ -446,24 +466,42 @@ Outstanding from Phase 5:
 3. **Pausing 30 seconds and resuming jumps forward to live**, rather than continuing from
    the pause.
 
+### Phase 6 exit verification (2026-08-16)
+
+**30 live assertions**, plus the 54 unit tests re-run as a regression. **84 passed, 0
+failed.** `build`, `typecheck` and `lint` clean.
+
+- **Ownership is enforced on the server, tested by calling the endpoints directly** rather
+  than trusting a hidden button: removing someone else's song is 403 and the song survives;
+  removing your own is 200 and it does not appear in the history; unauthenticated is 401.
+- **The song on air**: 409 `on_air` with a message pointing at skip — not a foreign-key
+  crash.
+- **A played song**: 409 `not_pending`.
+- **Skip is adder-only**: another person skipping is 403 and the song stays on air;
+  skipping something that is not on air is 409. The adder's skip advances the station, the
+  row is marked **`skipped`** (not `played`), and the next song starts at `now()`.
+- **The skip is silent**, checked from the other person's session: the skipped row shows no
+  name, the skipper's name and uuid appear nowhere in the payload, there is no `skippedBy`
+  field, the row still carries exactly the nine contract fields, and neither the rendered
+  page nor any shipped code or string literal contains "skipped by".
+
 ## Notes for later phases
 
 Work spotted mid-session that belongs to a later phase. Recorded here instead of being
 built early.
 
-- **Phase 6's skip should call `advancePast()`** in `lib/timeline.ts` — the same primitive
-  the failed-video path uses, which starts the next song at `now()` rather than chaining.
-  Unlike that path, skip is **adder-only**, and must stay silent: nothing in any payload or
-  view may name who skipped. `NowPlaying.canSkip` is already in the contract and already
-  computed as "is this mine".
-- **Phase 6's remove** is `DELETE /api/queue/:id`, adder-only and `pending`-only.
-  `QueueRow.canRemove` is already in the contract. Enforce server-side; hiding the button
-  is not enforcement, and the exit criteria call for testing the endpoint directly.
-- **Phase 6 must not touch the currently playing row via remove** — that is what skip is
-  for. `canRemove` is false for it already, since it is excluded from `upNext`.
 - **Phase 7's reveal endpoint** slots into `lib/reveals.ts`, which already has the read
   side (`revealedTodayBy`, `revealsRemaining`, `DAILY_REVEAL_LIMIT`). The insert should be
-  idempotent on the `(user_id, queue_item_id)` primary key so re-revealing costs nothing.
+  idempotent on the `(user_id, queue_item_id)` primary key so re-revealing costs nothing —
+  check for an existing row *before* counting the budget, or a repeat reveal will be
+  refused once the three are spent.
+- **A reveal must apply to the playing song too**, not just queue rows: `toNowPlaying`
+  already consults `revealedItemIds` through the shared `nameFor`.
+- **Reveals are private.** Nothing may tell the room that a reveal happened, and
+  `revealsRemaining` belongs only to the viewer's own `me` object — never per-row, never
+  for anyone else.
+- **Writing a test for the "reveal is free the second time" rule** needs care: spend one,
+  spend it again, and assert `revealsRemaining` is still 2 rather than 1.
 - **Phase 8 must include the six deferred browser checks** from Phases 4 and 5, listed in
   the caveat sections above, alongside the §16 landmine list.
 - **Query count on the hot path is now about five** per poll (player_state, current item,
