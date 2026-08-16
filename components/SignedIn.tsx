@@ -39,6 +39,8 @@ export default function SignedIn({ user, users, initialState }: Props) {
 
   // Local only. Never sent to the server, never affects anyone else's speaker.
   const [listening, setListening] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [volume, setVolume] = useState(70);
 
   const { serverNow, refresh } = station;
 
@@ -115,12 +117,21 @@ export default function SignedIn({ user, users, initialState }: Props) {
         <YouTubePlayer
           playing={station.state.playing}
           listening={listening}
+          muted={muted}
+          volume={volume}
           positionAt={positionAt}
           onFailed={handleFailed}
         />
       </NowPlaying>
 
-      <ListenControls listening={listening} onChange={setListening} />
+      <ListenControls
+        listening={listening}
+        muted={muted}
+        volume={volume}
+        onListeningChange={setListening}
+        onMutedChange={setMuted}
+        onVolumeChange={setVolume}
+      />
 
       {station.error && <p className={styles.placeholder}>{station.error}</p>}
 

@@ -98,6 +98,30 @@ export function useStation(initialState: StateResponse): Station {
     };
   }, [refresh]);
 
+  /**
+   * Fetch at the exact moment the current song ends, rather than waiting for the next
+   * poll (spec §7). Re-armed whenever the broadcast changes — including on a skip, which
+   * is why the effect keys off the queue item id and not the position.
+   *
+   * With this in place the 3s poll above exists only to catch *unpredictable* changes:
+   * skips, removals, and songs added after a period of silence.
+   */
+  const playingId = state.playing?.queueItemId ?? null;
+  const playingStartedAt = state.playing?.startedAt ?? null;
+  const playingDuration = state.playing?.durationSec ?? null;
+
+  useEffect(() => {
+    if (playingId === null || playingStartedAt === null || playingDuration === null) return;
+
+    const delay = transitionDelayMs(
+      positionSec(playingStartedAt, playingDuration, serverNow()),
+      playingDuration,
+    );
+
+    const timer = setTimeout(() => void refresh(), delay);
+    return () => clearTimeout(timer);
+  }, [playingId, playingStartedAt, playingDuration, refresh, serverNow]);
+
   return { state, error, refresh, serverNow };
 }
 
@@ -105,4 +129,36 @@ export function useStation(initialState: StateResponse): Station {
 export function positionSec(startedAt: string, durationSec: number, serverNowMs: number): number {
   const elapsed = (serverNowMs - new Date(startedAt).getTime()) / 1000;
   return Math.min(Math.max(elapsed, 0), durationSec);
+}
+
+/**
+ * Past this much disagreement between the player and the timeline, seek (spec §7).
+ *
+ * Under it, do nothing: a seek is audibly jarring, and being a second out matters not at
+ * all when only one machine in the room is unmuted.
+ */
+export const DRIFT_TOLERANCE_SEC = 2;
+
+/** How often to compare the player against the timeline. */
+export const DRIFT_CHECK_INTERVAL_MS = 30_000;
+
+/**
+ * A hair past the song's end, so the server sees `elapsed >= duration` and advances.
+ * Firing exactly on the boundary risks landing a rounding error short and doing nothing.
+ */
+const TRANSITION_MARGIN_MS = 250;
+
+export function shouldSeek(actualSec: number, expectedSec: number): boolean {
+  return Math.abs(actualSec - expectedSec) > DRIFT_TOLERANCE_SEC;
+}
+
+/**
+ * How long until the current song ends.
+ *
+ * The client already knows the start time and the duration, so it knows exactly when the
+ * next transition happens — waiting for the 3-second poll to notice would make every
+ * transition up to three seconds late.
+ */
+export function transitionDelayMs(positionSecs: number, durationSec: number): number {
+  return Math.max(0, (durationSec - positionSecs) * 1000) + TRANSITION_MARGIN_MS;
 }

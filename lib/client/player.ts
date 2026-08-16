@@ -82,6 +82,8 @@ function loadIframeApi(): Promise<void> {
 
 export type PlayerHandlers = {
   onError: (code: number) => void;
+  /** Fires on every state change; used to re-sync when a local pause is resumed. */
+  onStateChange?: (state: number) => void;
 };
 
 export async function createPlayer(
@@ -108,6 +110,7 @@ export async function createPlayer(
       events: {
         onReady: () => resolve(player),
         onError: (event) => handlers.onError(event.data),
+        onStateChange: (event) => handlers.onStateChange?.(event.data),
       },
     });
   });

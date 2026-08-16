@@ -14,7 +14,7 @@ where each session records what actually happened.
 | 2 — Add a song & queue view | done | 2026-08-16 | `951f6d8` |
 | 3 — Timeline engine | done | 2026-08-16 | `6f8c759` |
 | 4 — Client player | done (with caveats — see below) | 2026-08-16 | `a8500c8` |
-| 5 — Sync & local controls | not started | | |
+| 5 — Sync & local controls | done (with caveats — see below) | 2026-08-16 | uncommitted |
 | 6 — Ownership actions | not started | | |
 | 7 — Reveal tickets | not started | | |
 | 8 — Hardening & deploy | not started | | |
@@ -221,6 +221,26 @@ to know what was already considered.
 - **The player is 160×90 in the corner of the Now Playing card**, visible at all times.
   Never `display: none`.
 
+**Phase 5 (2026-08-16)**
+
+- **The drift interval keys on `playing.queueItemId`, never the `playing` object.** That
+  object is a fresh value on every 3-second poll, so an effect depending on it would
+  restart the 30-second interval before it ever fired — drift correction would silently
+  never run. Same reasoning for the scheduled-transition timer. There is a static check
+  asserting both dependency arrays, because this failure mode is invisible: nothing errors,
+  the correction just never happens.
+- **Drift correction lives inside `YouTubePlayer`**, which owns the player instance, rather
+  than exposing a handle upward as the Phase 4 note suggested. Encapsulation was the
+  cheaper option and no other component needs the player.
+- **Resume-after-pause reuses `shouldSeek`** with the same 2-second tolerance, so the drift
+  check that fires immediately after `loadVideoById` is a harmless no-op rather than a
+  double seek.
+- **The transition timer fires 250 ms *after* the song's scheduled end.** Landing exactly
+  on the boundary risks a rounding error leaving `elapsed` a hair under `duration`, so the
+  server would decline to advance and the transition would fall back to the 3s poll.
+- **Volume defaults to 70, unmuted, not listening.** Local-only state in `SignedIn`; it is
+  never persisted and never sent anywhere.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the
@@ -388,27 +408,64 @@ Everything reachable without a browser is verified above; the code paths behind 
 three are the ones the static invariant checks cover, but seeing and hearing them is not
 something a script did.
 
+### Phase 5 exit verification (2026-08-16)
+
+**54 unit tests**, **16 static invariant checks**, and the **Phase 3 timeline suite re-run
+as a regression (32 assertions)**. **102 passed, 0 failed.** `build`, `typecheck` and
+`lint` clean.
+
+- **Drift decisions** are unit tested at the boundary: 1s apart does nothing, exactly 2s
+  does nothing, 5s corrects — in both directions.
+- **Transition timing**: a listener 30s into a 200s song waits ~170s, not the up-to-3s-late
+  the poll alone would give; a song already past its end fires almost immediately; a
+  negative remainder never schedules into the past.
+- **Every `setInterval`/`setTimeout` has a matching clear** — asserted by counting both in
+  each file, not by eyeballing.
+- **Local controls stay local**: no network call in `ListenControls` or `YouTubePlayer`,
+  no `volume`/`muted` anywhere under `app/api/`, and no global player endpoint exists.
+- **`Date.now()` is confined to the three offset sites** in `useStation` (seed, refine from
+  first fetch, and `serverNow`). A fourth would mean a playhead bypassing the offset.
+
+### Phase 5 caveat — the audible criteria still need a browser
+
+BUILD-PLAN's testing posture says "No UI tests. Manual verification against the phase exit
+criteria is sufficient at this scale", so this is the documented plan rather than a gap
+discovered late. But it means Phases 4 and 5 have now accumulated **six** unverified
+browser behaviours. **Phase 8's audit must walk all of them**, not just the §16 list.
+
+Outstanding from Phase 4: audio starts at the live position; two browsers land within ~1s;
+the iframe survives a transition.
+
+Outstanding from Phase 5:
+
+1. **A transition is audible within a fraction of a second** of the song ending, not up to
+   three seconds late. Easiest with a short song — `jNQXAC9IVRw` is 19 seconds.
+2. **Forcing a 5-second drift triggers exactly one correction; a 1-second drift triggers
+   none.** In devtools: `document.querySelector('iframe')` is the player; drag its
+   position, then wait up to 30 seconds.
+3. **Pausing 30 seconds and resuming jumps forward to live**, rather than continuing from
+   the pause.
+
 ## Notes for later phases
 
 Work spotted mid-session that belongs to a later phase. Recorded here instead of being
 built early.
 
-- **Phase 5 adds the scheduled transition**: `setTimeout` for `durationSec - position`,
-  fetching `/api/state` at that moment. `useStation` already owns the 3s poll and
-  `serverNow()`; the timer belongs beside them, and must be cleared and re-armed whenever
-  `playing.queueItemId` changes. After this the 3s poll only catches *unpredictable*
-  changes — skips, removals, songs added after silence.
-- **Phase 5's drift correction**: every 30s compare `player.getCurrentTime()` against
-  `positionSec(...)`. Over 2s → `seekTo()`. **2s or under → do nothing**; seeking is
-  audibly jarring. `YouTubePlayer` currently exposes no handle to the outside — it will
-  need one, or the drift loop has to live inside that component.
-- **Phase 5's local mute/volume** goes in `ListenControls`; the player wrapper already has
-  `setVolume`, `mute`, `unMute`. Client-side only, never sent to the server.
-- **Pause-then-resume must re-sync to the live position**, not continue from the pause. It
-  is a radio. `loadVideoById` with a fresh `positionAt(...)` is the simplest way.
 - **Phase 6's skip should call `advancePast()`** in `lib/timeline.ts` — the same primitive
-  the failed-video path uses. Unlike that path, skip is **adder-only**, and must stay
-  silent: nothing in any payload or view may name who skipped.
+  the failed-video path uses, which starts the next song at `now()` rather than chaining.
+  Unlike that path, skip is **adder-only**, and must stay silent: nothing in any payload or
+  view may name who skipped. `NowPlaying.canSkip` is already in the contract and already
+  computed as "is this mine".
+- **Phase 6's remove** is `DELETE /api/queue/:id`, adder-only and `pending`-only.
+  `QueueRow.canRemove` is already in the contract. Enforce server-side; hiding the button
+  is not enforcement, and the exit criteria call for testing the endpoint directly.
+- **Phase 6 must not touch the currently playing row via remove** — that is what skip is
+  for. `canRemove` is false for it already, since it is excluded from `upNext`.
+- **Phase 7's reveal endpoint** slots into `lib/reveals.ts`, which already has the read
+  side (`revealedTodayBy`, `revealsRemaining`, `DAILY_REVEAL_LIMIT`). The insert should be
+  idempotent on the `(user_id, queue_item_id)` primary key so re-revealing costs nothing.
+- **Phase 8 must include the six deferred browser checks** from Phases 4 and 5, listed in
+  the caveat sections above, alongside the §16 landmine list.
 - **Query count on the hot path is now about five** per poll (player_state, current item,
   the day's queue, users, reveals), plus one for `pickNext` on a transition. Fine at six
   people, but it is the first thing to look at if Phase 8 finds `/api/state` slow.
