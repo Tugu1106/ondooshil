@@ -9,7 +9,7 @@ where each session records what actually happened.
 
 | Phase | Status | Session date | Commit |
 |---|---|---|---|
-| 0 — Foundation & schema | done | 2026-08-16 | `e6c2508` |
+| 0 — Foundation & schema | done | 2026-08-16 | `6969456` |
 | 1 — Auth | not started | | |
 | 2 — Add a song & queue view | not started | | |
 | 3 — Timeline engine | not started | | |
