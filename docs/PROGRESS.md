@@ -12,7 +12,7 @@ where each session records what actually happened.
 | 0 — Foundation & schema | done | 2026-08-16 | `6969456` |
 | 1 — Auth | done | 2026-08-16 | `5cf9b18` |
 | 2 — Add a song & queue view | done | 2026-08-16 | `951f6d8` |
-| 3 — Timeline engine | not started | | |
+| 3 — Timeline engine | done | 2026-08-16 | uncommitted |
 | 4 — Client player | not started | | |
 | 5 — Sync & local controls | not started | | |
 | 6 — Ownership actions | not started | | |
@@ -155,6 +155,35 @@ to know what was already considered.
   long) · `X4VbdwhkE10` (live) · `_F8jLFfQ9C0` (embeddable = false). The non-embeddable one
   took scanning 200 videos to find — they have become rare, so keep that id.
 
+**Phase 3 (2026-08-16)**
+
+- **`lib/timeline.ts` is pure — no `server-only`, no database import.** It takes its clock
+  and its storage as parameters. The Supabase implementation lives separately in
+  `lib/timeline-repo.ts`. This is what makes every edge case testable without a database,
+  a browser, or waiting three minutes for a song to end.
+- **`markPlayed` is conditional on `status = 'pending'`** so a concurrent skip is never
+  overwritten with `played`. Phase 6 sets `skipped`; without this the two would race.
+- **The playing song keeps `status = 'pending'`** and is filtered out of `upNext` in
+  `lib/state.ts` by id. Which song is current is owned by `player_state`, not by the status
+  column — consistent with the note in `0001_init.sql`. The alternative, writing
+  `status = 'playing'` on every transition, adds a write and a new inconsistent state if
+  it fails after `setCurrent` succeeds.
+- **`setCurrent` uses `.is('current_item', null)` when expecting null**, because SQL
+  equality never matches null and `.eq(…, null)` would silently never match — which would
+  have broken cold start specifically, and only cold start.
+- **Two extra guards beyond the spec's pseudocode**, both clearing the broadcast
+  conditionally and letting the next poll cold-start: a `current_item` pointing at a row
+  that no longer exists, and a `current_item` with a null `started_at`. Neither should
+  happen; inventing a playhead for them would be worse than a moment of silence.
+- **vitest config is `vitest.config.mts`**, not `.ts` — Vite's native config loader treats
+  a `.ts` config as CommonJS in this project and warns.
+- **`server-only` is aliased to a stub in tests** (`tests/stubs/server-only.ts`). The real
+  package throws unless the bundler sets React's `react-server` condition, which Next.js
+  does and vitest does not. It is a build-time guard with no runtime behaviour worth
+  keeping in a unit test.
+- **`buildState` runs `resolveState()` before reading the queue**, or the payload would
+  describe a song that has already ended.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the
@@ -258,25 +287,61 @@ failed.**
 `npm run build`, `typecheck` and `lint` all pass clean. **Test data was cleaned up** —
 queue and reveals emptied, all six users back to unclaimed, `player_state` still idle.
 
+### Phase 3 exit verification (2026-08-16)
+
+**39 unit tests** (`npm test`) against a fake repository with an injected clock, plus **32
+live assertions** against the running app and the real database. **71 passed, 0 failed.**
+
+The results that matter most:
+
+- **Accumulation, measured in real time**: three 19-second songs queued, cold start, then
+  a genuine 19-second wait. The next song's `startedAt` was **exactly** the previous
+  `startedAt + 19s` — not `now()`, despite the poll arriving late. This is the rule whose
+  error would otherwise compound into a minute of drift over twenty songs.
+- **The lunch break**: `started_at` moved back one hour with fifteen songs queued. Exactly
+  **one** song was consumed and the other fifteen survived. Without the 30s rule the whole
+  queue would have burned silently.
+- **Concurrency**: six simultaneous polls against an overdue song advanced it **once**.
+  The loser re-reads and reports the winner's state; it never retries.
+- **Midnight**: a song started at 23:58 with `day = yesterday` keeps playing after
+  midnight, because the current item is resolved by id with no day filter. When it ends,
+  yesterday's leftovers are *not* selected — a fresh station every morning.
+- **Anonymity holds on the playing song too**: viewed by someone else, `addedByName` is
+  null, `canSkip` is false, and the adder's name and uuid appear nowhere in the payload.
+- Silence on an empty queue, and a cold start when a song is added after silence.
+
+`npm run build`, `typecheck` and `lint` all pass clean. Test data cleaned up: queue and
+reveals empty, users unclaimed, `player_state` idle.
+
+Two failures during the run were the test harness, not the app, and are worth remembering:
+deleting `queue` rows fails while `player_state.current_item` still references one, so the
+broadcast must be cleared first; and "songs queued but nothing playing" cannot be observed
+through `/api/state`, because polling that endpoint is itself what cold-starts the station.
+
 ## Notes for later phases
 
 Work spotted mid-session that belongs to a later phase. Recorded here instead of being
 built early.
 
-- **Phase 3 needs vitest installed** (not yet added — the plan defers it to that phase).
-  `orderRoundRobin`, `parseVideoId` and `parseIso8601Duration` are all pure and are the
-  natural first tests alongside `resolveState`.
-- **Phase 3 fills in `playing`**: `lib/state.ts` has it hard-coded `null` with a comment
-  marking the spot. Nothing else in the payload changes shape.
-- **Phase 3 must add `toNowPlaying` to `lib/serialize.ts`**, applying the *same* identity
-  rule as `toQueueRow` — `addedByName` non-null only when `show_name`, the viewer is the
-  adder, or the viewer has revealed it. It was deliberately not written early. `canSkip` is
-  `isMine`, since only the adder may skip.
-- **`pickNext()` is `orderRoundRobin(pending)[0]`** where `pending` is today's rows with
-  `status = 'pending'`. `listDay()` already returns the day's rows.
-- **The day filter must not reach the current-item lookup.** `listDay()` is day-scoped by
-  design; resolving `player_state.current_item` needs a separate lookup by id with no day
-  filter, so a song crossing midnight finishes.
+- **Phase 4 (client player)**: `/api/state` now returns a real `playing` with `startedAt`
+  and `serverTime`. Position is `(clientNow + offset) - startedAt`, where `offset` is
+  computed **once** from `serverTime` on first load. Never raw `Date.now()`.
+- **Detect song changes by `playing.queueItemId`**, not by position — a skip breaks the
+  arithmetic, so the id is the only reliable signal.
+- **`onError` must mark the item `failed` and advance.** There is no endpoint for this
+  yet. It is closest in shape to the Phase 6 skip route, so either build a small
+  `POST /api/queue/:id/failed` in Phase 4 or note the decision here when made. It must set
+  `started_at = now()` for the next song, like a skip — not an accumulating transition.
+- **`resolveState` will handle the advance itself** once the item is marked `failed`,
+  since `pickNext` skips non-pending rows. The client only needs to mark and re-poll.
+- **Phase 5's drift correction** compares the player's actual position against
+  `(clientNow + offset) - startedAt`; over 2s seeks, 2s or under does nothing.
+- **`useStation` already takes `initialState` and polls every 3s.** Phase 5 adds the
+  `setTimeout` scheduled at `durationSec - position`; the 3s poll then only catches
+  unpredictable changes.
+- **Query count on the hot path is now about five** per poll (player_state, current item,
+  the day's queue, users, reveals), plus one for `pickNext` on a transition. Fine at six
+  people, but it is the first thing to look at if Phase 8 finds `/api/state` slow.
 - `currentUser()` in `lib/auth.ts` is the single identity choke point — every route added
   from Phase 2 onward must get its user from there, never from a request body.
 - `currentUser()` costs one `users` lookup per call. `/api/state` is polled every 3s by

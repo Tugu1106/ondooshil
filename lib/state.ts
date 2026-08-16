@@ -3,22 +3,27 @@ import 'server-only';
 import { listUsersForPicker, type PublicUser } from './auth';
 import { listDay, orderRoundRobin } from './queue';
 import { revealedTodayBy, revealsRemaining } from './reveals';
-import { toQueueRow } from './serialize';
+import { toNowPlaying, toQueueRow } from './serialize';
 import { todayInStationTz } from './time';
+import { resolveState } from './timeline';
+import { supabaseTimelineRepo } from './timeline-repo';
 import type { StateResponse } from './types';
 
 /**
  * Builds the `/api/state` payload.
  *
  * Shared by the route handler and the page's server render, so the first paint already
- * has data — no empty flash — and there is exactly one implementation of the anonymity
- * rules rather than two that could drift apart.
+ * has the station, and there is exactly one implementation of the anonymity rules rather
+ * than two that could drift apart.
  *
- * Three queries: the day's queue, the user names, this viewer's reveals. This is the hot
- * path — every client calls it every 3 seconds — so keep the count down.
+ * Order matters: `resolveState()` runs first and may advance the broadcast, so the queue
+ * has to be read afterwards or the payload would describe a song that has already ended.
  */
 export async function buildState(viewer: PublicUser): Promise<StateResponse> {
-  const day = todayInStationTz();
+  const now = new Date();
+  const day = todayInStationTz(now);
+
+  const resolved = await resolveState(supabaseTimelineRepo(), now, day);
 
   const [items, users, revealedItemIds] = await Promise.all([
     listDay(day),
@@ -32,7 +37,12 @@ export async function buildState(viewer: PublicUser): Promise<StateResponse> {
     revealedItemIds,
   };
 
-  const pending = items.filter((item) => item.status === 'pending');
+  // The playing song keeps `status = 'pending'` — which song is current is owned by
+  // player_state, not by that column — so it is excluded from "up next" here rather than
+  // by an extra write on every transition.
+  const pending = items.filter(
+    (item) => item.status === 'pending' && item.id !== resolved.current?.id,
+  );
 
   // Everything no longer waiting: played, skipped or failed, newest first. Skips carry no
   // attribution — only the adder can skip, so naming them would give away authorship for
@@ -42,16 +52,17 @@ export async function buildState(viewer: PublicUser): Promise<StateResponse> {
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 
   return {
-    serverTime: new Date().toISOString(),
+    serverTime: now.toISOString(),
     me: {
       id: viewer.id,
       name: viewer.name,
       isOwner: viewer.isOwner,
       revealsRemaining: revealsRemaining(revealedItemIds.size),
     },
-    // Phase 3 replaces this with resolveState(). Silence is the correct empty state —
-    // there is no fallback playlist by design.
-    playing: null,
+    playing:
+      resolved.current && resolved.startedAt
+        ? toNowPlaying(resolved.current, resolved.startedAt, context)
+        : null,
     upNext: orderRoundRobin(pending).map((item) => toQueueRow(item, context)),
     playedToday: finished.map((item) => toQueueRow(item, context)),
   };

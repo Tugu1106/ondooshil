@@ -1,7 +1,7 @@
 import 'server-only';
 
 import type { QueueItemRow } from './queue';
-import type { QueueRow } from './types';
+import type { NowPlaying, QueueRow } from './types';
 
 /**
  * The single choke point for the anonymity rule (spec §9).
@@ -49,5 +49,30 @@ export function toQueueRow(item: QueueItemRow, context: SerializeContext): Queue
     isMine,
     canRemove: isMine && item.status === 'pending',
     revealed: context.revealedItemIds.has(item.id),
+  };
+}
+
+/**
+ * The currently playing song. Same identity rule as `toQueueRow`, same field-by-field
+ * construction — the two must never diverge, because a leak in either is a leak.
+ *
+ * `canSkip` is simply "is this mine": only the adder may skip their own song (spec §8).
+ * The skip itself is silent; nothing anywhere names who did it.
+ */
+export function toNowPlaying(
+  item: QueueItemRow,
+  startedAt: Date,
+  context: SerializeContext,
+): NowPlaying {
+  const isMine = item.added_by === context.viewerId;
+
+  return {
+    queueItemId: item.id,
+    videoId: item.video_id,
+    title: item.title,
+    durationSec: item.duration_sec,
+    startedAt: startedAt.toISOString(),
+    addedByName: nameFor(item, context, isMine),
+    canSkip: isMine,
   };
 }
