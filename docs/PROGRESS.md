@@ -14,7 +14,7 @@ where each session records what actually happened.
 | 2 — Add a song & queue view | done | 2026-08-16 | `951f6d8` |
 | 3 — Timeline engine | done | 2026-08-16 | `6f8c759` |
 | 4 — Client player | done (with caveats — see below) | 2026-08-16 | `a8500c8` |
-| 5 — Sync & local controls | done (with caveats — see below) | 2026-08-16 | uncommitted |
+| 5 — Sync & local controls | done (with caveats — see below) | 2026-08-16 | `203873f` |
 | 6 — Ownership actions | not started | | |
 | 7 — Reveal tickets | not started | | |
 | 8 — Hardening & deploy | not started | | |
