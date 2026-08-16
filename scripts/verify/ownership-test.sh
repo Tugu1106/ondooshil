@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Phase 6: remove and skip are adder-only, enforced on the server, and skips are silent.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/_guard.sh"
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
 BASE=http://localhost:3000

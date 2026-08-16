@@ -322,6 +322,21 @@ to know what was already considered.
   or renamed: the signed-in check now looks for the account menu rather than "Signed in
   as", and the player check accepts "On air"/"Off air" rather than "Now playing".
 
+**The verification suites are now opt-in (2026-08-16)**
+
+The user watched their queue fill with unfamiliar songs, "Me at the zoo" repeat endlessly,
+their claimed name come back as unclaimed, and another name appear taken. It read as an
+intrusion. It was **the verification suite**, run against the same database they had open
+in a browser: the suite sets PINs for User 2 and User 3, nulls every `pin_hash` on reset,
+and queues its own test videos.
+
+No defect, no breach — but the process was wrong, so every suite that writes now refuses
+to start unless `VERIFY_WIPE_OK=1` is set. There is no default that deletes anything.
+`sync-static.sh` is unguarded and says why: it only reads source files.
+
+**The proper fix is a second Supabase project** for development, so verification can never
+reach the instance the office uses. Until that exists, treat this database as live.
+
 **Player sizing and chrome (2026-08-16)**
 
 - **The video is now `flex: 1 1 300px` up to 480px wide at 16:9**, instead of a fixed

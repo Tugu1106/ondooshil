@@ -5,9 +5,14 @@ server and the real database**. Together with `npm test` (the pure-logic unit te
 are the evidence behind the phase records in [../../docs/PROGRESS.md](../../docs/PROGRESS.md).
 
 ```bash
-npm run dev      # in another terminal
-npm run verify
+npm run dev                          # in another terminal
+VERIFY_WIPE_OK=1 npm run verify
 ```
+
+The opt-in is not ceremony. Run against a database the office is using and the queue
+empties mid-song, everyone's name comes back unclaimed, and test songs appear from
+nowhere — which looks exactly like being hacked. Every suite that writes refuses to start
+without it. (`sync-static.sh` only reads source files and is unguarded.)
 
 > **These scripts reset the database** — the queue, all reveals, and everybody's PIN. They
 > are development tooling. Never point them at the instance the office is using.

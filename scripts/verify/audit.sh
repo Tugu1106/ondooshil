@@ -2,6 +2,7 @@
 # Phase 8 — the spec §16 landmine checklist, audited fresh against the code.
 # Each item was a specific hard-to-diagnose bug during design.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/_guard.sh"
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
 BASE=http://localhost:3000

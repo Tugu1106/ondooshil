@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Phase 4 check: onError recovery end to end, and the player's static invariants.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/_guard.sh"
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
 BASE=http://localhost:3000

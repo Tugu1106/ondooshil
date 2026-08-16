@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Phase 3 exit check: the timeline running for real, against the live database.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/_guard.sh"
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
 BASE=http://localhost:3000

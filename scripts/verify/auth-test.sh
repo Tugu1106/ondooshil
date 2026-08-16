@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Phase 1 exit-criteria check. Exercises the auth flows against the running dev server.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/_guard.sh"
 
 BASE=http://localhost:3000
 U1=9f02a37a-7c18-4443-ac89-11d77cc58a8f   # User 1, is_owner

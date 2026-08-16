@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Phase 7: three reveals a day, private, and free the second time on the same song.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/_guard.sh"
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
 BASE=http://localhost:3000

@@ -12,6 +12,7 @@
 # between assertions.
 
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/_guard.sh"
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
 BASE=${BASE:-http://localhost:3000}

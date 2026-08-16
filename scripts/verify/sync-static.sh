@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Phase 5 static invariants — the properties a unit test cannot see and a browser check
 # would not reliably catch either.
+#
+# Deliberately NOT guarded by _guard.sh: this suite only reads source files. It never
+# touches the database, so it is safe to run against anything, at any time.
 set -u
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 

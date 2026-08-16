@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Phase 2 exit-criteria check: URL parsing, validation rejections, round-robin, anonymity.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/_guard.sh"
 
 BASE=http://localhost:3000
 U2=1a744594-fc33-42c5-a916-f5eb9d969c0b   # User 2
