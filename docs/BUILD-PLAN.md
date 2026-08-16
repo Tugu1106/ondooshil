@@ -94,9 +94,9 @@ the viewer is the adder. **There is no other field carrying identity.** No `adde
 { error: { code: string; message: string } }
 ```
 
-`message` is safe to show a user verbatim. Status codes: 400 bad input, 401 no session,
-403 not yours, 404 unknown id, 409 conflict/lockout, 422 validation rejection, 502
-upstream (YouTube) failure.
+`message` is safe to show a user verbatim. Status codes: 400 bad input, 401 no session /
+bad credential, 403 not yours, 404 unknown id, 409 conflict, 422 validation rejection, 429
+rate-limited (the PIN lockout), 502 upstream (YouTube) failure.
 
 ### File layout
 

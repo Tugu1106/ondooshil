@@ -1,18 +1,28 @@
+import AuthGate from '@/components/AuthGate';
+import SignedIn from '@/components/SignedIn';
+import { currentUser, deviceUser, listUsersForPicker } from '@/lib/auth';
+
 /**
- * Placeholder. The real single-page UI — auth gate, now playing, add box, up next,
- * played today — arrives across Phases 1, 2, 4 and 5. Phase 0 only proves the app boots
- * and can reach the database, which `/api/health` reports.
+ * The whole app lives at `/` (spec §11). There is no admin page, because there is no
+ * admin.
+ *
+ * This is a server component, so the identity decision happens on the server and the
+ * browser is only ever handed what it is entitled to: names, ids, and whether each name
+ * is claimed. `pin_hash` is reduced to a boolean before it leaves `lib/auth`.
+ *
+ * Reading cookies makes the route dynamic; `force-dynamic` states that rather than
+ * leaving it to be inferred.
  */
-export default function Home() {
-  return (
-    <main style={{ maxWidth: 640, margin: '0 auto', padding: '48px 20px' }}>
-      <h1 style={{ margin: 0, fontSize: 28 }}>Office Radio</h1>
-      <p style={{ color: 'var(--text-muted)' }}>
-        One queue, one speaker, one continuous broadcast.
-      </p>
-      <p style={{ color: 'var(--text-muted)' }}>
-        Setting up — check <a href="/api/health">/api/health</a> for configuration status.
-      </p>
-    </main>
-  );
+
+export const dynamic = 'force-dynamic';
+
+export default async function Home() {
+  const viewer = await currentUser();
+  const users = await listUsersForPicker();
+
+  if (viewer) {
+    return <SignedIn user={viewer} users={users} />;
+  }
+
+  return <AuthGate deviceUser={await deviceUser()} users={users} />;
 }

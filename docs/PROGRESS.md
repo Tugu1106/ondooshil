@@ -10,7 +10,7 @@ where each session records what actually happened.
 | Phase | Status | Session date | Commit |
 |---|---|---|---|
 | 0 — Foundation & schema | done | 2026-08-16 | `6969456` |
-| 1 — Auth | not started | | |
+| 1 — Auth | done | 2026-08-16 | uncommitted |
 | 2 — Add a song & queue view | not started | | |
 | 3 — Timeline engine | not started | | |
 | 4 — Client player | not started | | |
@@ -98,6 +98,38 @@ to know what was already considered.
   `node_modules/next/dist/docs/` — worth reading before writing Next-specific code, since
   Next 16 differs from older conventions.
 
+**Phase 1 (2026-08-16)**
+
+- **Both cookies are encrypted iron-sessions, not just `session`.** Spec §5 describes
+  `device` as "not proof of identity", which is true of authorizing *actions* — but
+  `device` is what allows a session to be minted with no PIN, and the name picker
+  necessarily ships every user's id to the browser. A plain-text `device` cookie would
+  therefore be a one-line impersonation of anyone in the office: set the cookie, click
+  Continue. Signing it costs nothing and closes that hole. `device` is still not accepted
+  as authorization for any action.
+- **Dependency: `bcryptjs` 3.0.3**, not native `bcrypt`. Same algorithm, pure JS, no
+  native module to compile on Vercel's build image. Cost factor **12** — the online
+  lockout is the real defence for a 4-digit PIN, but cost 12 makes an offline grind of all
+  10,000 combinations per user take hours rather than minutes if the table ever leaked.
+- **`iron-session` 8.0.4**: `getIronSession(await cookies(), options)`, `ttl` in seconds.
+  Cookie names `office_radio_session` (30d) and `office_radio_device` (10y). `secure` is
+  on only in production, because dev runs over plain http and would silently drop the
+  cookie otherwise.
+- **First-claim PIN setting is unauthenticated, by necessity.** On first claim there is no
+  prior credential to check. Inherent to spec §5's design and acceptable for six known
+  people in a private room; the recovery path for a mis-claim is the owner's reset, which
+  is precisely why that exists. `set-pin` is conditional on `pin_hash IS NULL`, so it can
+  never overwrite an existing PIN, and a race between two people claiming the same name
+  leaves the loser with a clear error rather than a silently clobbered PIN.
+- **A confirm-PIN field was added to the first-claim form.** Not in the spec, but a typo
+  on first claim is exactly the "PIN locked onto the wrong value" problem that the owner
+  reset exists to clean up. Cheaper to prevent.
+- **Lockout uses HTTP 429**, not the 409 that BUILD-PLAN §Contracts originally listed.
+  429 is the correct status for rate limiting; BUILD-PLAN has been corrected to match.
+- **`is_owner` UI is a single "Reset a PIN" panel** on the signed-in view, listing other
+  users with a Reset button. That is the only power the flag grants and the only surface
+  it may ever have.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the
@@ -115,6 +147,16 @@ expected state; a deviation here is a flag, not a footnote.
   Post-change advisors: the four ERRORs became four INFO `rls_enabled_no_policy` notices,
   which is the intended end state. **Do not "fix" those INFOs by adding policies.**
 
+- **`POST /api/auth/continue` was added; it is not in spec §11's endpoint list.** The spec
+  folds the PIN-free path into `/api/auth/claim` as an optional `pin`. It is split out
+  because this is the *only* endpoint that grants a session without a PIN, so it must be
+  incapable of being aimed at someone else. It accepts **no body at all** and reads the
+  identity purely from the encrypted device cookie, making impersonation structurally
+  impossible rather than dependent on getting a branch right inside a three-way handler.
+  `/api/auth/claim` consequently always requires a PIN. Verified: posting
+  `{"userId": "<another user>"}` to `/api/auth/continue` is ignored and returns the device
+  cookie's user.
+
 - **BUILD-PLAN Phase 0 says env vars are validated "at startup, fail loudly". They are
   validated at point of use instead.** Reason: the user is supplying keys after the build,
   and startup validation would mean the app cannot boot, `next build` cannot run, and
@@ -129,20 +171,49 @@ expected state; a deviation here is a flag, not a footnote.
 
 _(none yet — no `TODO:` comments in the codebase)_
 
+### Phase 1 exit verification (2026-08-16)
+
+A 34-assertion script exercised every flow against the live database. **34 passed, 0
+failed.** Covered: first claim sets a PIN and signs in · the signed-in page renders ·
+logout keeps the device cookie and the gate then offers "Continue" / names the user /
+offers "Not you?" · Continue works with no PIN · **posting another user's id to
+`/api/auth/continue` is ignored and still returns the device cookie's user** · Continue
+with no device cookie is 401 · `set-pin` on a claimed name is 409 · the correct PIN signs
+in · four wrong PINs count down 4→1 remaining · the fifth returns 429 `locked_out` · **the
+correct PIN during a lockout is still 429** · reset-pin is 401 unauthenticated, 403 for a
+non-owner, 200 for the owner · reset clears both the PIN and the lockout · short,
+non-numeric, and unknown-user inputs are rejected.
+
+Verified separately, since a test script cannot see either:
+
+- **PINs are hashed.** All stored values are 60-char `$2b$12$…` bcrypt hashes; a regex for
+  any 4-digit run inside a hash matched nothing.
+- **No secret reaches the browser.** Grepping `.next/static` for the session secret, the
+  service role key, the Supabase host, `pin_hash`, and any bcrypt hash prefix returned
+  zero hits across all client bundles.
+
+`npm run build`, `typecheck`, and `lint` all pass clean.
+
+**Test state was cleaned up afterwards** — all six users are back to `pin_hash = null`,
+`failed_attempts = 0`, `locked_until = null`, so the room starts fresh.
+
 ## Notes for later phases
 
 Work spotted mid-session that belongs to a later phase. Recorded here instead of being
 built early.
 
-- **Phase 1 needs no migration.** `failed_attempts` and `locked_until` already exist on
-  `users` from `0001_init.sql`.
-- **Phase 1 dependency choice:** `iron-session` and a bcrypt implementation are not yet
-  installed. Spec §5 says "bcrypt"; prefer **`bcryptjs`** — pure JS, no native module to
-  compile, which matters on Vercel's build image. Same algorithm, so the spec's intent is
-  met. Record the choice here when it is made.
-- **Phase 2 needs `YOUTUBE_API_KEY`** in `.env.local`.
+- **Phase 2 needs `YOUTUBE_API_KEY`** in `.env.local` — still blank.
 - **Phase 3 needs vitest installed** (not yet added — the plan defers it to that phase).
 - `lib/types.ts` does not exist yet; Phase 2 creates it from BUILD-PLAN §Contracts.
+  `lib/http.ts` already holds the error shape and body-parsing helpers; reuse them.
+- `currentUser()` in `lib/auth.ts` is the single identity choke point — every route added
+  from Phase 2 onward must get its user from there, never from a request body.
+- `currentUser()` costs one `users` lookup per call. `/api/state` is polled every 3s by
+  every client, so if Phase 3 finds that endpoint doing too many queries, folding the user
+  lookup into its main query is the first thing to try.
+- The signed-in view (`components/SignedIn.tsx`) is a deliberate placeholder. Phase 2
+  replaces its middle card with the add box and queue lists; keep the header row and the
+  owner panel.
 - `npm run typecheck` depends on `.next/types`, which only exist after a `next build` or
   `next dev` run. On a clean clone, build before typechecking.
 
