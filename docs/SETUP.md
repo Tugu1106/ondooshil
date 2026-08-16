@@ -168,6 +168,9 @@ unblocked once `/api/health` returns 200.**
 
 ## Group B — YouTube Data API key (before Phase 2)
 
+> **Status: done** (2026-08-16). Key created, restricted to *YouTube Data API v3*,
+> application restrictions None, and verified with a live `videos.list` call.
+
 Used server-side to validate a pasted link: does the video exist, is it embeddable, how
 long is it, is it a live stream.
 

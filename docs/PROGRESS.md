@@ -30,8 +30,11 @@ Track what exists outside the repo, since a cold session cannot see it.
   - Postgres 17.6
 - Migration applied to Supabase: **yes** — `0001_init` and `0002_enable_rls`, verified
 - Seed users created: **yes** — 6 users, 1 owner, all `pin_hash` null
-- YouTube Data API key obtained: **no** (not needed until Phase 2)
-- `.env.local` populated: **yes**
+- YouTube Data API key obtained: **yes** — restricted to *YouTube Data API v3*, application
+  restrictions deliberately **None** (server-side calls have no referrer, and Vercel's
+  outbound IP is not fixed). Verified 2026-08-16 with a live `videos.list` call returning
+  title, `PT3M34S`, `embeddable: true`, `liveBroadcastContent: none`.
+- `.env.local` populated: **yes** — all five variables set
 - Vercel project: **not yet created**
 
 An earlier project (`ondooshil`, ref `qjwgzfgiwpyvglabbrdt`, ap-southeast-2 / Sydney) was
@@ -202,7 +205,7 @@ Verified separately, since a test script cannot see either:
 Work spotted mid-session that belongs to a later phase. Recorded here instead of being
 built early.
 
-- **Phase 2 needs `YOUTUBE_API_KEY`** in `.env.local` — still blank.
+- **Phase 2 is unblocked** — `YOUTUBE_API_KEY` is set and verified working.
 - **Phase 3 needs vitest installed** (not yet added — the plan defers it to that phase).
 - `lib/types.ts` does not exist yet; Phase 2 creates it from BUILD-PLAN §Contracts.
   `lib/http.ts` already holds the error shape and body-parsing helpers; reuse them.
