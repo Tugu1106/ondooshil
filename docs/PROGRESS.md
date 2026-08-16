@@ -10,7 +10,7 @@ where each session records what actually happened.
 | Phase | Status | Session date | Commit |
 |---|---|---|---|
 | 0 — Foundation & schema | done | 2026-08-16 | `6969456` |
-| 1 — Auth | done | 2026-08-16 | uncommitted |
+| 1 — Auth | done | 2026-08-16 | `5cf9b18` |
 | 2 — Add a song & queue view | not started | | |
 | 3 — Timeline engine | not started | | |
 | 4 — Client player | not started | | |
