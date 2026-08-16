@@ -161,7 +161,17 @@ check "songs change via loadVideoById, not a remount" "yes" "$(grep -q 'loadVide
 echo
 echo "  14. Audio starts only after a user gesture (now: unmuting)"
 check "the page opens muted" "yes" "$(grep -q 'useState(true)' components/SignedIn.tsx && echo yes || echo no)"
-check "nothing loads while muted, so a silent tab streams nothing" "yes" "$(grep -q 'if (muted || !playing)' components/YouTubePlayer.tsx && echo yes || echo no)"
+check "the iframe itself starts muted" "yes" "$(grep -q 'mute: 1' lib/client/player.ts && echo yes || echo no)"
+# The stream runs regardless; only the speaker is gated. So the mute effect must be the
+# only place `muted` is consulted — if loading ever depends on it again, unmuting goes
+# back to being a fresh buffer instead of instant.
+check "loading never depends on muted" "yes" "$(node -e "
+const src=require('fs').readFileSync('components/YouTubePlayer.tsx','utf8').replace(/\/\*[\s\S]*?\*\//g,'').replace(/\/\/.*/g,'');
+// Bounded by the effect's own syntax, not by a comment — the stripping above removes
+// comments, so anchoring to one would slice past the end and read the next effect.
+const at=src.indexOf('loadVideoById({');
+const block=src.slice(src.lastIndexOf('useEffect(', at), src.indexOf(']', src.indexOf('}, [', at)));
+console.log(/\bmuted\b/.test(block) ? 'no' : 'yes')")"
 check "the served page shows the speaker off" "yes" "$(curl -s -b "$A" "$BASE/" | grep -q 'Speaker off' && echo yes || echo no)"
 # One flag, not two: a separate "listening" state is exactly how a button ends up claiming
 # sound is playing while the room hears silence.

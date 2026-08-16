@@ -5,16 +5,13 @@ import styles from './Player.module.css';
 /**
  * The only playback control there is (spec §7).
  *
- * You cannot pause a radio. The broadcast runs whether or not anyone is listening, so
- * this does not start or stop it — it only decides whether *this* machine's speaker is
- * audible. Nothing here touches the server, and nothing here affects anyone else.
+ * You cannot pause a radio. The player is already running — from page load, through every
+ * transition — and this does not start or stop it. It only decides whether *this*
+ * machine's speaker is audible, which is why turning it on is instant rather than a fresh
+ * buffer. Nothing here touches the server, and nothing here affects anyone else.
  *
- * The page opens muted, for two reasons that happen to agree:
- *
- * - Browsers refuse to autoplay audio without a user gesture. Unmuting *is* that gesture,
- *   so this button is what makes sound legal in the first place.
- * - While muted the tab streams nothing, so five silent laptops cost the office
- *   connection nothing and only the machine driving the speaker pulls video.
+ * The page opens muted because muted autoplay is the one kind browsers permit without a
+ * user gesture. Unmuting *is* that gesture, so this button is what makes sound legal.
  */
 
 type Props = {
@@ -50,7 +47,7 @@ export default function SpeakerToggle({ muted, volume, onMutedChange, onVolumeCh
 
       <p className={styles.hint}>
         {muted
-          ? 'The station is playing regardless. Turn this on for the room.'
+          ? 'The station is already running. Turn this on for the room.'
           : 'This machine is the room speaker.'}
       </p>
     </div>

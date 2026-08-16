@@ -12,7 +12,12 @@
  */
 
 export type YouTubePlayer = {
-  loadVideoById(options: { videoId: string; startSeconds?: number }): void;
+  loadVideoById(options: {
+    videoId: string;
+    startSeconds?: number;
+    /** Advisory. The frame is 160×90, so the smallest stream looks identical. */
+    suggestedQuality?: string;
+  }): void;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
   getCurrentTime(): number;
   playVideo(): void;
@@ -45,11 +50,14 @@ declare global {
   }
 }
 
-/** Player states the IFrame API reports. Only ENDED and PLAYING matter here. */
+/** Player states the IFrame API reports. */
 export const PLAYER_STATE = {
+  UNSTARTED: -1,
   ENDED: 0,
   PLAYING: 1,
   PAUSED: 2,
+  /** Loaded but not playing — where a blocked autoplay attempt lands. */
+  CUED: 5,
 } as const;
 
 let apiReady: Promise<void> | null = null;
@@ -110,6 +118,11 @@ export async function createPlayer(
         // pause button — and since the player auto-resumes anything that pauses it,
         // leaving one visible would just look broken.
         controls: 0,
+        // Muted autoplay is the one kind browsers permit without a gesture. The station
+        // therefore runs from the moment the page opens; unmuting is what needs the
+        // click, and that click is the gesture.
+        autoplay: 1,
+        mute: 1,
       },
       events: {
         onReady: () => resolve(player),

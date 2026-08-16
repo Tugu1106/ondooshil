@@ -11,6 +11,15 @@ import styles from './Player.module.css';
 /**
  * The player (spec §7).
  *
+ * **The broadcast runs here whether or not anyone can hear it.** The iframe loads and
+ * plays from the moment the page opens, muted, and keeps going through every transition.
+ * `muted` only decides whether this machine's speaker is audible — it never starts or
+ * stops the stream. That is the whole point: a radio does not switch off because you
+ * turned the volume down, and there is nothing to re-buffer when you turn it back up.
+ *
+ * Muted autoplay is the one kind browsers permit without a user gesture, so the station
+ * can start on its own; unmuting is the gesture, and that is what needs the click.
+ *
  * Rules this component exists to keep:
  *
  * 1. The iframe stays **mounted and visible** for the life of the page. It is small and
@@ -20,19 +29,13 @@ import styles from './Player.module.css';
  *    iframe is never torn down and rebuilt between songs.
  * 3. Changes are detected by comparing the **queue item id**, never the position. A skip
  *    breaks the timeline arithmetic, so the id is the only reliable signal.
- *
- * **There is exactly one control: mute.** `muted` is the single source of truth for
- * whether this machine is streaming. There is no separate "am I listening" flag, because
- * two pieces of state describing one thing is precisely how a button ends up claiming
- * sound is playing while the room hears silence.
- *
- * And because a radio cannot be paused, anything that pauses this player — a throttled
- * background tab, the browser suspending an iframe — is a fault to recover from, not an
- * instruction to obey. The player resumes itself and re-seeks to the live position.
+ * 4. Anything that pauses the player — a throttled background tab, a suspended iframe, a
+ *    blocked autoplay attempt — is a fault to recover from, not an instruction to obey.
  */
 
 type Props = {
   playing: NowPlaying | null;
+  /** Speaker only. Never gates loading or playback. */
   muted: boolean;
   /** 0–100, local to this browser. Never sent to the server. */
   volume: number;
@@ -55,7 +58,6 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
   const playingRef = useRef(playing);
   const onFailedRef = useRef(onFailed);
   const positionAtRef = useRef(positionAt);
-  const mutedRef = useRef(muted);
 
   useEffect(() => {
     playingRef.current = playing;
@@ -68,10 +70,6 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
   useEffect(() => {
     positionAtRef.current = positionAt;
   }, [positionAt]);
-
-  useEffect(() => {
-    mutedRef.current = muted;
-  }, [muted]);
 
   /** Pull the player back onto the timeline, but only if it has drifted far enough. */
   function correctDrift(player: Player) {
@@ -99,7 +97,7 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
       },
       onStateChange: (playerState) => {
         const player = playerRef.current;
-        if (!player || mutedRef.current) return;
+        if (!player || loadedItemRef.current === null) return;
 
         if (playerState === PLAYER_STATE.PLAYING) {
           // Covers a resume after any interruption: rejoin the broadcast where it is now,
@@ -109,9 +107,9 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
           return;
         }
 
-        if (playerState === PLAYER_STATE.PAUSED) {
-          // Nobody asked for this — the controls are hidden. A background tab or a
-          // suspended iframe did it, so recover rather than sitting there silently.
+        // Nobody asked for either of these — the transport controls are hidden. A
+        // background tab, a suspended iframe, or an autoplay attempt that did not take.
+        if (playerState === PLAYER_STATE.PAUSED || playerState === PLAYER_STATE.CUED) {
           player.playVideo();
         }
       },
@@ -135,16 +133,15 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
   }, []);
 
   /**
-   * Load the current song when the broadcast changes, or when this machine unmutes.
-   *
-   * While muted nothing is loaded at all, so a silent tab streams no video. The click
-   * that unmutes is also the user gesture browsers require before audio may play.
+   * Load whatever is on air. Deliberately independent of `muted`: the stream runs from
+   * page load onward, so unmuting is instant rather than a fresh buffer.
    */
   useEffect(() => {
     const player = playerRef.current;
     if (!player || !ready) return;
 
-    if (muted || !playing) {
+    if (!playing) {
+      // Silence between songs. Stop, but keep the instance and the iframe alive.
       if (loadedItemRef.current !== null) {
         player.stopVideo();
         loadedItemRef.current = null;
@@ -159,25 +156,28 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
     player.loadVideoById({
       videoId: playing.videoId,
       startSeconds: positionAt(playing),
+      // The frame is 160×90 and most listeners are muted, so ask for the smallest stream.
+      // It looks identical at this size and costs the office connection far less.
+      suggestedQuality: 'small',
     });
     loadedItemRef.current = playing.queueItemId;
-  }, [playing, muted, positionAt, ready]);
+  }, [playing, positionAt, ready]);
 
-  // Volume is local and applies only while audible.
+  /** The speaker. This is the only thing the toggle touches. */
   useEffect(() => {
     const player = playerRef.current;
     if (!player || !ready) return;
+
     player.setVolume(volume);
-  }, [volume, ready]);
+    if (muted) player.mute();
+    else player.unMute();
+  }, [muted, volume, ready]);
 
   /**
    * Coming back to a backgrounded tab: its timers were throttled, so the playhead is
-   * stale and the browser may have suspended the iframe. Re-sync and make sure it is
-   * still running.
+   * stale and the browser may have suspended the iframe.
    */
   useEffect(() => {
-    if (muted) return;
-
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return;
       const player = playerRef.current;
@@ -188,7 +188,7 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
 
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [muted]);
+  }, []);
 
   /**
    * Drift correction (spec §7). Keyed on the queue item id rather than the `playing`
@@ -198,7 +198,7 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
   const playingId = playing?.queueItemId ?? null;
 
   useEffect(() => {
-    if (muted || playingId === null || !ready) return;
+    if (playingId === null || !ready) return;
 
     const timer = setInterval(() => {
       const player = playerRef.current;
@@ -206,7 +206,7 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
     }, DRIFT_CHECK_INTERVAL_MS);
 
     return () => clearInterval(timer);
-  }, [muted, playingId, ready]);
+  }, [playingId, ready]);
 
   return (
     <div className={styles.stage} aria-hidden>

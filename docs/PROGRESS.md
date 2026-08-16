@@ -333,9 +333,17 @@ the audio, and asked for the radio model instead of an opt-in.
 - **The page opens muted.** Browsers refuse to autoplay audio without a user gesture — this
   is what the Listen button really existed for. Unmuting *is* the gesture, so spec §7's
   requirement is still met with one control instead of two.
-- **Nothing is loaded while muted**, so a silent tab streams no video. That preserves the
-  bandwidth argument in spec §7 (six browsers streaming for one speaker) without the user
-  ever having to think about it.
+- **The iframe runs from page load onward, muted, and never stops for the toggle.**
+  Superseded a first attempt that only loaded while unmuted; the user wanted the stream
+  always live, which is the truer radio model and makes unmuting instant rather than a
+  fresh buffer. `muted` is now consulted in exactly one effect — the one that calls
+  `mute()` / `unMute()` — and an audit check asserts the loading effect never mentions it.
+- **Accepted cost, deliberately:** every open tab now streams, not just the speaker
+  machine. That is the bandwidth argument in spec §7 (six browsers for one speaker), and it
+  is being traded away knowingly. Offset by requesting `suggestedQuality: 'small'` — the
+  frame is 160×90, so the smallest stream is visually identical and much cheaper.
+- **Blocked autoplay is recovered from too.** `CUED` joins `PAUSED` as a state the player
+  plays out of, since a refused autoplay lands there rather than erroring.
 - **The player heals itself.** Anything that pauses it — a throttled background tab, a
   suspended iframe — is treated as a fault, not an instruction: it resumes and re-seeks to
   the live position. A `visibilitychange` handler does the same on returning to the tab,
