@@ -11,7 +11,7 @@ where each session records what actually happened.
 |---|---|---|---|
 | 0 — Foundation & schema | done | 2026-08-16 | `6969456` |
 | 1 — Auth | done | 2026-08-16 | `5cf9b18` |
-| 2 — Add a song & queue view | done | 2026-08-16 | uncommitted |
+| 2 — Add a song & queue view | done | 2026-08-16 | `951f6d8` |
 | 3 — Timeline engine | not started | | |
 | 4 — Client player | not started | | |
 | 5 — Sync & local controls | not started | | |
