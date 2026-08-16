@@ -11,7 +11,7 @@ U3=8ff75ed7-286e-4a7d-ba43-b53f0493bee3
 ZOO=jNQXAC9IVRw
 RICK=dQw4w9WgXcQ
 
-SP="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.verify-tmp" && pwd)"
+SP="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.verify-tmp" && mkdir -p . && pwd -W 2>/dev/null || pwd)"
 A="$SP/jarA.txt"; B="$SP/jarB.txt"; S="$SP/state.json"; H="$SP/page.html"
 rm -f "$A" "$B" "$S" "$H"
 pass=0; fail=0

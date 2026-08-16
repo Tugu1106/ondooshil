@@ -24,14 +24,14 @@
 
 .layout {
   display: flex;
-  gap: 16px;
+  gap: 18px;
   align-items: flex-start;
   flex-wrap: wrap;
 }
 
 .details {
-  flex: 1;
-  min-width: 200px;
+  flex: 1 1 240px;
+  min-width: 0;
 }
 
 .title {
@@ -55,14 +55,16 @@
 
 /*
  * The player stays visible for the life of the page. `display: none` causes some
- * browsers to pause playback, so it is made small rather than hidden.
+ * browsers to pause playback, so it is sized down rather than hidden.
+ *
+ * Grows to fill the space it is given, up to 480px wide, and holds 16:9 at every size.
  */
 .stage {
-  width: 160px;
-  height: 90px;
-  flex-shrink: 0;
+  flex: 1 1 300px;
+  max-width: 480px;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
-  border-radius: 6px;
+  border-radius: 8px;
   background: #000;
 }
 
@@ -72,6 +74,13 @@
   height: 100%;
   border: 0;
   display: block;
+  /*
+   * Nothing here is clickable. It removes YouTube's hover chrome — the centre play/pause
+   * overlay and the corner buttons only appear on pointer interaction — and it means a
+   * stray click cannot pause the station. You cannot pause a radio, so the surface that
+   * would let you is simply inert.
+   */
+  pointer-events: none;
 }
 
 .progress {

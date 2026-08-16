@@ -14,7 +14,7 @@ LONG=Gp7XG8Oys3I        # 166 minutes
 LIVE=X4VbdwhkE10        # live lofi radio
 NOEMBED=_F8jLFfQ9C0     # embeddable = false
 
-SP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.verify-tmp" && pwd)"
+SP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.verify-tmp" && mkdir -p . && pwd -W 2>/dev/null || pwd)"
 SP_STATE="$SP_DIR/qstate.json"
 A=$(mktemp); B=$(mktemp); OUT=$(mktemp)
 pass=0; fail=0

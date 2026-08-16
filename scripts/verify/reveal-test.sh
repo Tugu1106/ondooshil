@@ -10,7 +10,7 @@ U2=1a744594-fc33-42c5-a916-f5eb9d969c0b
 U3=8ff75ed7-286e-4a7d-ba43-b53f0493bee3
 ZOO=jNQXAC9IVRw; RICK=dQw4w9WgXcQ; QUEEN=fJ9rUzIMcZQ; GANGNAM=9bZkp7q19f0; PERU=1La4QzGeaaQ
 
-SP="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.verify-tmp" && pwd)"
+SP="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.verify-tmp" && mkdir -p . && pwd -W 2>/dev/null || pwd)"
 A="$SP/jarA.txt"; B="$SP/jarB.txt"; S="$SP/state.json"; R="$SP/r.json"
 rm -f "$A" "$B" "$S" "$R"
 pass=0; fail=0

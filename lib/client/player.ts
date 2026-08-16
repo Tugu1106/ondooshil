@@ -118,6 +118,10 @@ export async function createPlayer(
         // pause button — and since the player auto-resumes anything that pauses it,
         // leaving one visible would just look broken.
         controls: 0,
+        // The rest of YouTube's furniture: annotation cards, the fullscreen button, and
+        // the end-of-video suggestion grid. None of it belongs on a station display.
+        iv_load_policy: 3,
+        fs: 0,
         // Muted autoplay is the one kind browsers permit without a gesture. The station
         // therefore runs from the moment the page opens; unmuting is what needs the
         // click, and that click is the gesture.

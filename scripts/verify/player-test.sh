@@ -10,7 +10,7 @@ U2=1a744594-fc33-42c5-a916-f5eb9d969c0b
 U3=8ff75ed7-286e-4a7d-ba43-b53f0493bee3
 ZOO=jNQXAC9IVRw
 
-SP="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.verify-tmp" && pwd)"
+SP="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.verify-tmp" && mkdir -p . && pwd -W 2>/dev/null || pwd)"
 J="$SP/jar.txt"; J2="$SP/jar2.txt"; S="$SP/state.json"; H="$SP/page.html"
 rm -f "$J" "$J2" "$S" "$H"
 pass=0; fail=0

@@ -12,7 +12,7 @@ ZOO=jNQXAC9IVRw   # 19 seconds
 
 # Node here is a Windows binary and cannot resolve Git Bash's /tmp paths, so the state
 # file has to live somewhere both can see.
-SP="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.verify-tmp" && pwd)"
+SP="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.verify-tmp" && mkdir -p . && pwd -W 2>/dev/null || pwd)"
 J="$SP/jar.txt"; J2="$SP/jar2.txt"; S="$SP/state.json"
 rm -f "$J" "$J2" "$S"
 pass=0; fail=0

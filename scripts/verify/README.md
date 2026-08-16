@@ -12,6 +12,13 @@ npm run verify
 > **These scripts reset the database** — the queue, all reveals, and everybody's PIN. They
 > are development tooling. Never point them at the instance the office is using.
 
+> **Close any browser tab open on the dev server first.** A live tab polls `/api/state`
+> every three seconds, and cold-starting from silence is exactly what it is supposed to do —
+> so it will restart the station in the middle of a reset and produce foreign-key errors
+> and wandering counts that look like real failures. `run-all.sh` retries the reset and
+> aborts with a clear message if it keeps losing that race, but the individual scripts do
+> not.
+
 | Script | Covers |
 |---|---|
 | `auth-test.sh` | Both cookies, first claim, the PIN-free Continue path, the 5-attempt lockout, owner reset |

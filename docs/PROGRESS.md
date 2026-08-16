@@ -322,6 +322,33 @@ to know what was already considered.
   or renamed: the signed-in check now looks for the account menu rather than "Signed in
   as", and the player check accepts "On air"/"Off air" rather than "Now playing".
 
+**Player sizing and chrome (2026-08-16)**
+
+- **The video is now `flex: 1 1 300px` up to 480px wide at 16:9**, instead of a fixed
+  160×90. It grows into whatever space the on-air block gives it and wraps below the track
+  details on narrow screens.
+- **`pointer-events: none` on the frame.** YouTube's centre play/pause overlay and corner
+  buttons only appear on pointer interaction, so making the surface inert removes them —
+  and it means a stray click cannot pause the station. You cannot pause a radio, so the
+  surface that would let you is simply not interactive. Also added `iv_load_policy: 3`
+  (no annotation cards) and `fs: 0` (no fullscreen button).
+
+**Verification harness: two environment bugs, no app defect (2026-08-16)**
+
+Both cost real debugging time and are worth knowing before extending the suite.
+
+- **A browser tab open on the dev server breaks the suite.** It polls `/api/state` every
+  three seconds and cold-starts the station the instant a reset clears it — which then
+  makes `DELETE FROM queue` fail on the `player_state.current_item` foreign key, leaving
+  rows behind and producing failures that look like real defects. Confirmed by clearing
+  `player_state` and watching it re-arm within two seconds with nothing of mine running.
+  `run-all.sh` now retries the reset up to five times and aborts with a plain explanation
+  if it keeps losing; the README warns about it.
+- **`pwd` in Git Bash returns `/d/…`, which the Windows `node` binary cannot resolve.** The
+  copied scripts built their temp paths that way and failed everywhere `node` read a file.
+  They now use `pwd -W` with a fallback. This is the same class of problem as the earlier
+  `mktemp` failures — anything handing a path from Git Bash to node needs a Windows path.
+
 **Speaker rework (2026-08-16)** — after the user reported the Listen button desyncing from
 the audio, and asked for the radio model instead of an opt-in.
 

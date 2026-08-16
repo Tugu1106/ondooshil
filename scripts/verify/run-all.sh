@@ -25,21 +25,40 @@ if ! curl -s -o /dev/null "$BASE/api/health"; then
   exit 1
 fi
 
+queue_count() {
+  curl -s "$SB_URL/rest/v1/queue?select=id" \
+    -H "apikey: $SB_KEY" -H "Authorization: Bearer $SB_KEY" |
+    node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>console.log(JSON.parse(d).length))"
+}
+
 reset() {
-  # player_state first: current_item is a foreign key into queue, so the broadcast has to
-  # be cleared before the rows it points at can go.
-  curl -s -X PATCH "$SB_URL/rest/v1/player_state?id=eq.1" \
-    -H "apikey: $SB_KEY" -H "Authorization: Bearer $SB_KEY" \
-    -H 'content-type: application/json' -H 'Prefer: return=minimal' \
-    -d '{"current_item":null,"started_at":null}'
-  for path in "reveals?day=not.is.null" "queue?id=not.is.null"; do
-    curl -s -X DELETE "$SB_URL/rest/v1/$path" \
-      -H "apikey: $SB_KEY" -H "Authorization: Bearer $SB_KEY" -H 'Prefer: return=minimal'
+  # Retried, because anything polling /api/state cold-starts the station the instant the
+  # broadcast is cleared — and player_state.current_item is a foreign key into queue, so
+  # that makes the delete fail. An open browser tab is enough to lose this race.
+  for _ in 1 2 3 4 5; do
+    curl -s -X PATCH "$SB_URL/rest/v1/player_state?id=eq.1" \
+      -H "apikey: $SB_KEY" -H "Authorization: Bearer $SB_KEY" \
+      -H 'content-type: application/json' -H 'Prefer: return=minimal' \
+      -d '{"current_item":null,"started_at":null}'
+    for path in "reveals?day=not.is.null" "queue?id=not.is.null"; do
+      curl -s -X DELETE "$SB_URL/rest/v1/$path" \
+        -H "apikey: $SB_KEY" -H "Authorization: Bearer $SB_KEY" -H 'Prefer: return=minimal'
+    done
+    [ "$(queue_count)" = "0" ] && break
   done
+
   curl -s -X PATCH "$SB_URL/rest/v1/users?id=not.is.null" \
     -H "apikey: $SB_KEY" -H "Authorization: Bearer $SB_KEY" \
     -H 'content-type: application/json' -H 'Prefer: return=minimal' \
     -d '{"pin_hash":null,"failed_attempts":0,"locked_until":null}'
+
+  if [ "$(queue_count)" != "0" ]; then
+    echo
+    echo "Could not clear the queue after five attempts."
+    echo "Something is polling /api/state and restarting the station underneath this suite."
+    echo "Close any browser tab open on $BASE and run it again."
+    exit 1
+  fi
 }
 
 SUITES=(auth-test queue-test timeline-test player-test ownership-test reveal-test sync-static audit)
