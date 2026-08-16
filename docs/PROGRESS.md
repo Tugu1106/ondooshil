@@ -12,7 +12,7 @@ where each session records what actually happened.
 | 0 — Foundation & schema | done | 2026-08-16 | `6969456` |
 | 1 — Auth | done | 2026-08-16 | `5cf9b18` |
 | 2 — Add a song & queue view | done | 2026-08-16 | `951f6d8` |
-| 3 — Timeline engine | done | 2026-08-16 | uncommitted |
+| 3 — Timeline engine | done | 2026-08-16 | `6f8c759` |
 | 4 — Client player | not started | | |
 | 5 — Sync & local controls | not started | | |
 | 6 — Ownership actions | not started | | |
