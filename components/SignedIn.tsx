@@ -4,13 +4,19 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import type { PickerUser, PublicUser } from '@/lib/auth';
+import { useStation } from '@/lib/client/useStation';
+import type { StateResponse } from '@/lib/types';
 
+import AddSongForm from './AddSongForm';
+import PlayedToday from './PlayedToday';
 import styles from './SignedIn.module.css';
+import UpNext from './UpNext';
 
 /**
- * Placeholder for the signed-in view. Phase 1 proves only that you are authenticated and
- * can leave; the real page — now playing, add box, up next, played today — is built in
- * Phases 2, 4 and 5.
+ * The signed-in shell and the station itself.
+ *
+ * Polls `/api/state` every 3 seconds and renders the add box, the round-robin queue, and
+ * today's history. Now playing, the Listen button and the player arrive in Phases 4 and 5.
  *
  * The owner panel is the UI for `/api/owner/reset-pin`, the single power `is_owner`
  * grants. It is not an admin surface and must not grow into one.
@@ -19,10 +25,12 @@ import styles from './SignedIn.module.css';
 type Props = {
   user: PublicUser;
   users: PickerUser[];
+  initialState: StateResponse;
 };
 
-export default function SignedIn({ user, users }: Props) {
+export default function SignedIn({ user, users, initialState }: Props) {
   const router = useRouter();
+  const station = useStation(initialState);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -75,9 +83,14 @@ export default function SignedIn({ user, users }: Props) {
 
       <div className={styles.card}>
         <p className={styles.placeholder}>
-          The queue, the player and the Listen button arrive in the next phases.
+          {station.error ?? 'Now playing, the Listen button and the player arrive next.'}
         </p>
       </div>
+
+      <AddSongForm onAdded={station.refresh} />
+
+      <UpNext rows={station.state.upNext} />
+      <PlayedToday rows={station.state.playedToday} />
 
       {user.isOwner && (
         <div className={styles.card}>

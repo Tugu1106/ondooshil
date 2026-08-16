@@ -1,6 +1,7 @@
 import AuthGate from '@/components/AuthGate';
 import SignedIn from '@/components/SignedIn';
 import { currentUser, deviceUser, listUsersForPicker } from '@/lib/auth';
+import { buildState } from '@/lib/state';
 
 /**
  * The whole app lives at `/` (spec §11). There is no admin page, because there is no
@@ -21,7 +22,8 @@ export default async function Home() {
   const users = await listUsersForPicker();
 
   if (viewer) {
-    return <SignedIn user={viewer} users={users} />;
+    // Rendered server-side so the first paint already has the queue, with no empty flash.
+    return <SignedIn user={viewer} users={users} initialState={await buildState(viewer)} />;
   }
 
   return <AuthGate deviceUser={await deviceUser()} users={users} />;

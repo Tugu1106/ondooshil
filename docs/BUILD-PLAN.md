@@ -128,12 +128,12 @@ tests/
 
 Narrow and deliberate, not blanket coverage:
 
-- **Vitest unit tests** for pure logic: URL parsing, ISO-8601 duration parsing, and
-  `resolveState()` — which takes an injected clock and a repository interface precisely so
-  it can be tested without a database or a browser. This is the reason Phase 3 is isolated.
-- **One scripted integration check** against the real database for round-robin ordering
-  (SQL-side, so unit tests cannot reach it): seed rows under a sentinel `day`, assert the
-  order, clean up.
+- **Vitest unit tests** for pure logic: URL parsing, ISO-8601 duration parsing,
+  round-robin ordering, and `resolveState()` — which takes an injected clock and a
+  repository interface precisely so it can be tested without a database or a browser. This
+  is the reason Phase 3 is isolated.
+- **Scripted end-to-end checks** against the running app and the real database, one per
+  phase, asserting that phase's exit criteria and cleaning up after themselves.
 - No UI tests. Manual verification against the phase exit criteria is sufficient at this scale.
 
 ---

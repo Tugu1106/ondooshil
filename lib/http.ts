@@ -16,6 +16,12 @@ export type ApiErrorCode =
   | 'no_device'
   | 'not_authenticated'
   | 'not_owner'
+  | 'invalid_url'
+  | 'video_not_found'
+  | 'not_embeddable'
+  | 'live_stream'
+  | 'too_long'
+  | 'youtube_unavailable'
   | 'server_error';
 
 export function apiError(

@@ -11,7 +11,7 @@ where each session records what actually happened.
 |---|---|---|---|
 | 0 — Foundation & schema | done | 2026-08-16 | `6969456` |
 | 1 — Auth | done | 2026-08-16 | `5cf9b18` |
-| 2 — Add a song & queue view | not started | | |
+| 2 — Add a song & queue view | done | 2026-08-16 | uncommitted |
 | 3 — Timeline engine | not started | | |
 | 4 — Client player | not started | | |
 | 5 — Sync & local controls | not started | | |
@@ -133,6 +133,28 @@ to know what was already considered.
   users with a Reset button. That is the only power the flag grants and the only surface
   it may ever have.
 
+**Phase 2 (2026-08-16)**
+
+- **`lib/state.ts` builds the `/api/state` payload, shared by the route handler and the
+  page's server render.** The page seeds `SignedIn` with `initialState`, so the first paint
+  already has the queue instead of flashing empty and fetching on mount. It also means one
+  implementation of the anonymity rules rather than two that could drift.
+- **`useStation` takes `initialState` and only polls.** React 19's
+  `react-hooks/set-state-in-effect` rule correctly flagged the original fetch-on-mount;
+  server-seeding removed the effect entirely rather than working around the lint.
+- **Ordering happens in TypeScript, not SQL.** See Deviations.
+- **The 'Show my name' checkbox resets after each add.** A single decision should not
+  silently carry over to the next song.
+- **Reveal *reads* are implemented (`lib/reveals.ts`), spending is not.** BUILD-PLAN calls
+  for `revealsRemaining` to be a real count from Phase 2; the `POST /api/reveal/:id`
+  endpoint stays in Phase 7.
+- **`components/Station.module.css` is shared by AddSongForm, UpNext and PlayedToday** —
+  they are three parts of one visual block, not independent widgets.
+- **Test video ids** (useful for later phases, all verified 2026-08-16):
+  `dQw4w9WgXcQ` 214s · `jNQXAC9IVRw` 19s · `fJ9rUzIMcZQ` 360s · `Gp7XG8Oys3I` 9979s (too
+  long) · `X4VbdwhkE10` (live) · `_F8jLFfQ9C0` (embeddable = false). The non-embeddable one
+  took scanning 200 videos to find — they have become rare, so keep that id.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the
@@ -149,6 +171,17 @@ expected state; a deviation here is a flag, not a footnote.
   entirely, so no application code changes. See `supabase/migrations/0002_enable_rls.sql`.
   Post-change advisors: the four ERRORs became four INFO `rls_enabled_no_policy` notices,
   which is the intended end state. **Do not "fix" those INFOs by adding policies.**
+
+- **Round-robin ordering is implemented in TypeScript (`orderRoundRobin`), not as the SQL
+  window function in spec §6.** The spec's query is preserved verbatim as a comment above
+  the function and the output order is identical. Reasons: it is pure, so Phase 3 can unit
+  test song selection end to end with an injected repository instead of needing a live
+  database — which is the whole point of isolating the timeline engine — and `supabase-js`
+  cannot express `ROW_NUMBER() OVER (PARTITION BY …)` without an RPC and another migration.
+  Row counts are one day of a six-person office, so in-memory sorting costs nothing.
+  BUILD-PLAN's testing-posture note has been updated to match. **Verified against the live
+  API**: with User 2 holding six pending songs and User 3 two, the order came back
+  U2₁, U3₁, U2₂, U3₂, then U2's remainder.
 
 - **`POST /api/auth/continue` was added; it is not in spec §11's endpoint list.** The spec
   folds the PIN-free path into `/api/auth/claim` as an optional `pin`. It is split out
@@ -200,15 +233,50 @@ Verified separately, since a test script cannot see either:
 **Test state was cleaned up afterwards** — all six users are back to `pin_hash = null`,
 `failed_attempts = 0`, `locked_until = null`, so the room starts fresh.
 
+### Phase 2 exit verification (2026-08-16)
+
+A 32-assertion script against the running app and the live database. **32 passed, 0
+failed.**
+
+- **All five URL forms** plus a `&list=` playlist link were accepted and all six resolved
+  to the same video id — the playlist is discarded for free, because only `v` is ever read.
+  A `playlist?list=` link with no video is rejected. Six identical songs queued: duplicates
+  are allowed, as specified.
+- **Each rejection has its own code and its own message**, verified distinct, against real
+  videos: `Gp7XG8Oys3I` (166 min → 422 `too_long`), `X4VbdwhkE10` (live → 422
+  `live_stream`), `_F8jLFfQ9C0` (embeddable false → 422 `not_embeddable`), junk link (400
+  `invalid_url`). The queue was unchanged by all four.
+- **Round-robin verified live**: U2₁, U3₁, U2₂, U3₂, then U2's remainder. A lone adder
+  stays FIFO.
+- **Anonymity verified on the payload, not the UI**: viewing as User 3, the JSON contains
+  no occurrence of `User 2`, none of User 2's uuid, and no `addedById`, `added_by` or
+  `show_name` field anywhere. Anonymous rows carry `addedByName: null`. A row has exactly
+  the nine contract fields. With `showName: true` the name appears — and only on that one
+  row, while the same person's other songs stay anonymous.
+- `/api/state` and `POST /api/queue` both 401 without a session.
+
+`npm run build`, `typecheck` and `lint` all pass clean. **Test data was cleaned up** —
+queue and reveals emptied, all six users back to unclaimed, `player_state` still idle.
+
 ## Notes for later phases
 
 Work spotted mid-session that belongs to a later phase. Recorded here instead of being
 built early.
 
-- **Phase 2 is unblocked** — `YOUTUBE_API_KEY` is set and verified working.
 - **Phase 3 needs vitest installed** (not yet added — the plan defers it to that phase).
-- `lib/types.ts` does not exist yet; Phase 2 creates it from BUILD-PLAN §Contracts.
-  `lib/http.ts` already holds the error shape and body-parsing helpers; reuse them.
+  `orderRoundRobin`, `parseVideoId` and `parseIso8601Duration` are all pure and are the
+  natural first tests alongside `resolveState`.
+- **Phase 3 fills in `playing`**: `lib/state.ts` has it hard-coded `null` with a comment
+  marking the spot. Nothing else in the payload changes shape.
+- **Phase 3 must add `toNowPlaying` to `lib/serialize.ts`**, applying the *same* identity
+  rule as `toQueueRow` — `addedByName` non-null only when `show_name`, the viewer is the
+  adder, or the viewer has revealed it. It was deliberately not written early. `canSkip` is
+  `isMine`, since only the adder may skip.
+- **`pickNext()` is `orderRoundRobin(pending)[0]`** where `pending` is today's rows with
+  `status = 'pending'`. `listDay()` already returns the day's rows.
+- **The day filter must not reach the current-item lookup.** `listDay()` is day-scoped by
+  design; resolving `player_state.current_item` needs a separate lookup by id with no day
+  filter, so a song crossing midnight finishes.
 - `currentUser()` in `lib/auth.ts` is the single identity choke point — every route added
   from Phase 2 onward must get its user from there, never from a request body.
 - `currentUser()` costs one `users` lookup per call. `/api/state` is polled every 3s by
