@@ -1,22 +1,25 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import type { PickerUser, PublicUser } from '@/lib/auth';
-import { useStation } from '@/lib/client/useStation';
-import type { StateResponse } from '@/lib/types';
+import { positionSec, useStation } from '@/lib/client/useStation';
+import type { NowPlaying as NowPlayingData, StateResponse } from '@/lib/types';
 
 import AddSongForm from './AddSongForm';
+import ListenControls from './ListenControls';
+import NowPlaying from './NowPlaying';
 import PlayedToday from './PlayedToday';
 import styles from './SignedIn.module.css';
 import UpNext from './UpNext';
+import YouTubePlayer from './YouTubePlayer';
 
 /**
  * The signed-in shell and the station itself.
  *
- * Polls `/api/state` every 3 seconds and renders the add box, the round-robin queue, and
- * today's history. Now playing, the Listen button and the player arrive in Phases 4 and 5.
+ * Polls `/api/state` every 3 seconds and renders now playing, the player, the add box,
+ * the round-robin queue, and today's history.
  *
  * The owner panel is the UI for `/api/owner/reset-pin`, the single power `is_owner`
  * grants. It is not an admin surface and must not grow into one.
@@ -33,6 +36,33 @@ export default function SignedIn({ user, users, initialState }: Props) {
   const station = useStation(initialState);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  // Local only. Never sent to the server, never affects anyone else's speaker.
+  const [listening, setListening] = useState(false);
+
+  const { serverNow, refresh } = station;
+
+  const positionAt = useCallback(
+    (playing: NowPlayingData) => positionSec(playing.startedAt, playing.durationSec, serverNow()),
+    [serverNow],
+  );
+
+  /**
+   * The video will not play here. Mark it failed and let the server advance — never
+   * retry. Non-embeddable uploads are common, and without this the station silently dies
+   * mid-morning looking exactly like a queue bug.
+   */
+  const handleFailed = useCallback(
+    async (playing: NowPlayingData) => {
+      await fetch(`/api/queue/${playing.queueItemId}/failed`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ videoId: playing.videoId }),
+      }).catch(() => undefined);
+      await refresh();
+    },
+    [refresh],
+  );
 
   async function logout() {
     setBusy(true);
@@ -81,11 +111,18 @@ export default function SignedIn({ user, users, initialState }: Props) {
         </div>
       </div>
 
-      <div className={styles.card}>
-        <p className={styles.placeholder}>
-          {station.error ?? 'Now playing, the Listen button and the player arrive next.'}
-        </p>
-      </div>
+      <NowPlaying playing={station.state.playing} positionAt={positionAt}>
+        <YouTubePlayer
+          playing={station.state.playing}
+          listening={listening}
+          positionAt={positionAt}
+          onFailed={handleFailed}
+        />
+      </NowPlaying>
+
+      <ListenControls listening={listening} onChange={setListening} />
+
+      {station.error && <p className={styles.placeholder}>{station.error}</p>}
 
       <AddSongForm onAdded={station.refresh} />
 

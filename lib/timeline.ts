@@ -95,6 +95,26 @@ async function advance(
 }
 
 /**
+ * Moves off the current song immediately, starting the next one at `now()`.
+ *
+ * This is a cold start, not an accumulating transition: the song did not run its full
+ * length, so `started_at + duration` would place the next one in the past. Used by
+ * `onError` recovery, and by skips in Phase 6.
+ *
+ * Conditional on `expected` like every other advance, so two clients reporting the same
+ * broken video cannot skip two songs.
+ */
+export async function advancePast(
+  repo: TimelineRepo,
+  expected: string,
+  now: Date,
+  day: string,
+): Promise<Resolved> {
+  const next = await repo.pickNext(day);
+  return advance(repo, expected, next, next ? now : null);
+}
+
+/**
  * Called on every `/api/state` request. Advances **at most one song** — never loops.
  * Successive 3-second polls handle successive songs naturally, and a bounded single step
  * is what makes the overshoot rule easy to reason about (spec §6, rule 3).

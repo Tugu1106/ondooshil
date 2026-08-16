@@ -13,7 +13,7 @@ where each session records what actually happened.
 | 1 — Auth | done | 2026-08-16 | `5cf9b18` |
 | 2 — Add a song & queue view | done | 2026-08-16 | `951f6d8` |
 | 3 — Timeline engine | done | 2026-08-16 | `6f8c759` |
-| 4 — Client player | not started | | |
+| 4 — Client player | done (with caveats — see below) | 2026-08-16 | uncommitted |
 | 5 — Sync & local controls | not started | | |
 | 6 — Ownership actions | not started | | |
 | 7 — Reveal tickets | not started | | |
@@ -184,6 +184,43 @@ to know what was already considered.
 - **`buildState` runs `resolveState()` before reading the queue**, or the payload would
   describe a song that has already ended.
 
+**Phase 4 (2026-08-16)**
+
+- **`POST /api/queue/:id/failed` is the `onError` endpoint.** BUILD-PLAN left the choice
+  open. It is its own route rather than a reuse of the (not yet built) skip route because
+  the permission model differs: **any** signed-in listener may report a failure, since any
+  listener's player is where the error surfaces and a broken video is a fact about the
+  video, not an ownership action. Skips in Phase 6 stay adder-only.
+- **Three guards keep that narrow** (`lib/playback.ts`): the item must actually be
+  `player_state.current_item`; the reported `videoId` must match that row, so a replayed
+  or racing request cannot kill a different song; and the status update is conditional on
+  `pending`. A stale report returns `{advanced: false}` and HTTP 200 — with several people
+  watching, being second is the normal case, not an error.
+- **Accepted trade-off, recorded deliberately:** a determined user could call this on the
+  current song to force a skip they are not entitled to. It is bounded to one song per
+  call and the guards stop it hitting anything else. Spec §7 makes error recovery
+  mandatory — without it the station dies on the first bad video — and the trust model is
+  six known colleagues in one room. Not worth a vote or a role, both of which are rejected
+  by design.
+- **`advancePast()` in `lib/timeline.ts`** is the shared "move on now" primitive: picks
+  next, starts it at `now()` (a cold start, not an accumulating transition, because the
+  song did not run its length), conditional on the expected id. **Phase 6's skip should
+  use this same function.**
+- **The clock offset is written in effects, never during render.** React 19's
+  `react-hooks/purity` and `react-hooks/refs` rules correctly reject `Date.now()` and ref
+  writes during render. Consequence: `serverNow()` falls back to the raw client clock
+  until the mount effect runs, which affects only the first painted frame of the progress
+  bar — nothing loads a video before the Listen click.
+- **The offset is seeded from the server-rendered payload, then replaced once by the first
+  live fetch**, where the error is only half a round trip. Frozen after that.
+- **`YouTubePlayer` keeps `playing` and `onFailed` in refs updated by effects**, so the
+  player-creation effect has empty dependencies. Re-running it would tear down and rebuild
+  the iframe, which is precisely what must never happen.
+- **No `@types/youtube` dependency** — the handful of IFrame API methods the app uses are
+  declared in `lib/client/player.ts`.
+- **The player is 160×90 in the corner of the Now Playing card**, visible at all times.
+  Never `display: none`.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the
@@ -318,27 +355,60 @@ deleting `queue` rows fails while `player_state.current_item` still references o
 broadcast must be cleared first; and "songs queued but nothing playing" cannot be observed
 through `/api/state`, because polling that endpoint is itself what cold-starts the station.
 
+### Phase 4 exit verification (2026-08-16)
+
+**46 unit tests** and **23 live assertions**. **69 passed, 0 failed.** `build`, `typecheck`
+and `lint` all clean.
+
+- **`onError` recovery, end to end**: a video that passes validation and later becomes
+  unplayable (inserted directly, since the add pipeline correctly refuses non-embeddable
+  videos up front) is marked **`failed`** — not `played` — and the station moves to the
+  next song, started at `now()` rather than chained from the dead song.
+- **The report is guarded**: replaying an old report is a no-op; a mismatched `videoId`
+  cannot kill the current song; unauthenticated is 401; a missing `videoId` is 400. Four
+  simultaneous reports skipped **exactly one** song.
+- **Clock skew**: a unit test drives a client clock 40 seconds fast and shows the offset
+  cancels it exactly — position 60s instead of the 100s the raw clock would give.
+- **Static invariants**: the served page contains the Listen button and opens *not*
+  listening; the player mount is not conditionally rendered; songs change through
+  `loadVideoById`; change detection compares the queue item id; no `display: none`
+  declaration in the player CSS; no raw `Date.now()` in the playhead components.
+
+### Phase 4 caveat — three criteria need a human at a browser
+
+I have no browser automation here, so these remain **unverified by me**. They need about
+two minutes with the app open:
+
+1. **Click Listen mid-song** — audio should begin at the live position, not at 0:00.
+2. **Open a second browser** and confirm both land within roughly a second of each other.
+3. **Watch a transition** — audio should change songs with the iframe never disappearing
+   or reloading (the DOM node should keep the same identity in devtools).
+
+Everything reachable without a browser is verified above; the code paths behind these
+three are the ones the static invariant checks cover, but seeing and hearing them is not
+something a script did.
+
 ## Notes for later phases
 
 Work spotted mid-session that belongs to a later phase. Recorded here instead of being
 built early.
 
-- **Phase 4 (client player)**: `/api/state` now returns a real `playing` with `startedAt`
-  and `serverTime`. Position is `(clientNow + offset) - startedAt`, where `offset` is
-  computed **once** from `serverTime` on first load. Never raw `Date.now()`.
-- **Detect song changes by `playing.queueItemId`**, not by position — a skip breaks the
-  arithmetic, so the id is the only reliable signal.
-- **`onError` must mark the item `failed` and advance.** There is no endpoint for this
-  yet. It is closest in shape to the Phase 6 skip route, so either build a small
-  `POST /api/queue/:id/failed` in Phase 4 or note the decision here when made. It must set
-  `started_at = now()` for the next song, like a skip — not an accumulating transition.
-- **`resolveState` will handle the advance itself** once the item is marked `failed`,
-  since `pickNext` skips non-pending rows. The client only needs to mark and re-poll.
-- **Phase 5's drift correction** compares the player's actual position against
-  `(clientNow + offset) - startedAt`; over 2s seeks, 2s or under does nothing.
-- **`useStation` already takes `initialState` and polls every 3s.** Phase 5 adds the
-  `setTimeout` scheduled at `durationSec - position`; the 3s poll then only catches
-  unpredictable changes.
+- **Phase 5 adds the scheduled transition**: `setTimeout` for `durationSec - position`,
+  fetching `/api/state` at that moment. `useStation` already owns the 3s poll and
+  `serverNow()`; the timer belongs beside them, and must be cleared and re-armed whenever
+  `playing.queueItemId` changes. After this the 3s poll only catches *unpredictable*
+  changes — skips, removals, songs added after silence.
+- **Phase 5's drift correction**: every 30s compare `player.getCurrentTime()` against
+  `positionSec(...)`. Over 2s → `seekTo()`. **2s or under → do nothing**; seeking is
+  audibly jarring. `YouTubePlayer` currently exposes no handle to the outside — it will
+  need one, or the drift loop has to live inside that component.
+- **Phase 5's local mute/volume** goes in `ListenControls`; the player wrapper already has
+  `setVolume`, `mute`, `unMute`. Client-side only, never sent to the server.
+- **Pause-then-resume must re-sync to the live position**, not continue from the pause. It
+  is a radio. `loadVideoById` with a fresh `positionAt(...)` is the simplest way.
+- **Phase 6's skip should call `advancePast()`** in `lib/timeline.ts` — the same primitive
+  the failed-video path uses. Unlike that path, skip is **adder-only**, and must stay
+  silent: nothing in any payload or view may name who skipped.
 - **Query count on the hot path is now about five** per poll (player_state, current item,
   the day's queue, users, reveals), plus one for `pickNext` on a transition. Fine at six
   people, but it is the first thing to look at if Phase 8 finds `/api/state` slow.
