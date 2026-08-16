@@ -17,7 +17,7 @@ where each session records what actually happened.
 | 5 — Sync & local controls | done (with caveats — see below) | 2026-08-16 | `203873f` |
 | 6 — Ownership actions | done | 2026-08-16 | `4896e21` |
 | 7 — Reveal tickets | done | 2026-08-16 | `8449216` |
-| 8 — Hardening & deploy | code done; deploy is the user's step | 2026-08-16 | uncommitted |
+| 8 — Hardening & deploy | code done; deploy is the user's step | 2026-08-16 | `5c058e4` |
 
 Status values: `not started` · `in progress` · `done` · `done (with caveats — see below)`
 
