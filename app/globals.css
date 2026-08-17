@@ -13,6 +13,11 @@
   --accent: #ff7a45;
   --danger: #ff5c5c;
 
+  /*
+   * Structure is square, actions are round. Panels, cards, dialogs, fields and banners
+   * carry no radius at all; only things you press do. `--radius` is therefore a *control*
+   * token — do not reach for it on a container.
+   */
   --radius: 10px;
   --gap: 16px;
 

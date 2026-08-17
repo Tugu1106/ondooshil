@@ -428,6 +428,20 @@ any phase.
   run either — it wipes the live database. Both UI strings its suites depend on (`Speaker
   off`, `On air`/`Off air`) are untouched. `build`, `lint`, `typecheck` and 54 unit tests clean.
 
+**Structure is square, actions are round (2026-08-17)** — design pass, continued.
+
+- **Every container lost its radius**: both panels, queue cards, the video stage, the
+  progress bar, the login card, the account dropdown, the reset-PIN dialog, and every error
+  / notice / message banner. Only things you press keep one.
+- **Inputs went square too** — the paste field and the PIN field. Read as structure rather
+  than as actions: you fill a field, you do not press it. A judgment call, flagged to the
+  user rather than assumed.
+- **Two round things survive that are not buttons**: the avatar circle in the account menu
+  and the `Next` pill on the queue card. Both are identity or status markers, not boxes.
+- **`--radius` is now documented in `globals.css` as a *control* token**, explicitly not for
+  containers. Without that note the rule erodes the first time someone reaches for the
+  nearest radius variable while styling a new panel.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the

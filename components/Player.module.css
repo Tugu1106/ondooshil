@@ -62,7 +62,6 @@
   max-width: 480px;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  border-radius: 8px;
   background: #000;
 }
 
@@ -83,7 +82,6 @@
 
 .progress {
   height: 4px;
-  border-radius: 2px;
   background: var(--surface-raised);
   overflow: hidden;
 }
@@ -91,7 +89,6 @@
 .bar {
   height: 100%;
   background: var(--accent);
-  border-radius: 2px;
 }
 
 .times {
