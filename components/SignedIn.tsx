@@ -10,18 +10,17 @@ import type { NowPlaying as NowPlayingData, QueueRow, StateResponse } from '@/li
 import AccountMenu from './AccountMenu';
 import AddSongForm from './AddSongForm';
 import NowPlaying from './NowPlaying';
-import PlayedToday from './PlayedToday';
+import Queue from './Queue';
 import styles from './SignedIn.module.css';
 import SpeakerToggle from './SpeakerToggle';
-import UpNext from './UpNext';
 import YouTubePlayer from './YouTubePlayer';
 
 /**
  * The signed-in page.
  *
- * Two panels. The left one is the whole broadcast in a single container, read top to
- * bottom as time runs: what has played, what is on air, what is coming. The right one is
- * for adding a song — a different job, so a different panel.
+ * Two panels. The left one is the station: the song on air, and below it the day's queue
+ * as one continuous list. The right one is for adding a song — a different job, so a
+ * different panel.
  *
  * Account actions live in the menu at the top right, which is the only place `is_owner`
  * surfaces at all. There is no admin area, because there is no admin.
@@ -165,15 +164,8 @@ export default function SignedIn({ user, users, initialState }: Props) {
       {notice && <p className={styles.notice}>{notice}</p>}
 
       <div className={styles.layout}>
-        {/* Past, present and future — one container, read downward. */}
+        {/* The song on air, and under it the day's queue. */}
         <section className={styles.panel}>
-          <PlayedToday
-            rows={station.state.playedToday}
-            onReveal={handleReveal}
-            revealsRemaining={station.state.me.revealsRemaining}
-            busy={busy}
-          />
-
           <NowPlaying
             playing={station.state.playing}
             positionAt={positionAt}
@@ -200,8 +192,9 @@ export default function SignedIn({ user, users, initialState }: Props) {
             }
           />
 
-          <UpNext
-            rows={station.state.upNext}
+          <Queue
+            played={station.state.playedToday}
+            upNext={station.state.upNext}
             onRemove={handleRemove}
             onReveal={handleReveal}
             revealsRemaining={station.state.me.revealsRemaining}

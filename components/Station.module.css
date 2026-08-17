@@ -1,65 +1,41 @@
 /*
- * The one station container: past, present, future in a single vertical flow, read top to
- * bottom. History runs into the song on air, which runs into what is coming.
+ * The queue — the whole day in one scrolling list, below the song on air.
+ *
+ * It rests with the next song against the top edge. The past is parked just above it, out
+ * of sight until you scroll up for it; the future runs downward. Letting go returns it to
+ * rest, so the list has one true position rather than wherever it was left.
  */
 
-.section {
-  padding: 18px 20px;
-  border-bottom: 1px solid var(--border);
-}
+.queue {
+  --queue-height: 440px;
+  /* Approximate card height. Only the tail spacer uses it, so a rough value is fine. */
+  --card-height: 76px;
 
-.section:last-child {
-  border-bottom: none;
-}
-
-/* The present, given weight so it is obvious where "now" is in the flow. */
-.onAir {
-  background: var(--surface-raised);
-  border-top: 1px solid var(--border);
-}
-
-.sectionTitle {
-  margin: 0 0 12px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.onAirTitle {
-  color: var(--accent);
-}
-
-/*
- * History is capped so a busy afternoon cannot push the song on air off the screen.
- * Oldest at the top, newest against the on-air block, so time reads downward.
- */
-.history {
-  max-height: 190px;
+  position: relative; /* card offsetTop is measured against this — see Queue.tsx */
+  height: var(--queue-height);
   overflow-y: auto;
+  overflow-anchor: none; /* the settle logic owns the scroll position, not the browser */
+  padding: 0 20px 20px;
+  scrollbar-width: thin;
 }
 
-.row {
+.card {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
-  padding: 9px 0;
-  border-top: 1px solid var(--border);
+  margin-bottom: 8px;
+  padding: 13px 16px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
-.row:first-of-type {
-  border-top: none;
+/* Already played. Still legible, clearly behind. */
+.past {
+  opacity: 0.5;
 }
 
-.position {
-  min-width: 20px;
-  color: var(--text-muted);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-
-.main {
+.cardMain {
   flex: 1;
   min-width: 0;
 }
@@ -72,9 +48,24 @@
   font-size: 15px;
 }
 
-.meta {
+.cardMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
   font-size: 12px;
   color: var(--text-muted);
+}
+
+.next {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #1a0d06;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .mine {
@@ -82,18 +73,25 @@
 }
 
 .duration {
-  color: var(--text-muted);
-  font-size: 13px;
+  margin-left: auto;
   font-variant-numeric: tabular-nums;
 }
 
 .struck {
   text-decoration: line-through;
-  opacity: 0.55;
+}
+
+/*
+ * Slack below the last card, so it too can be scrolled up to the top edge. Without it the
+ * rest position is unreachable whenever the list is shorter than the container.
+ */
+.tail {
+  height: calc(var(--queue-height) - var(--card-height));
 }
 
 .empty {
   margin: 0;
+  padding: 0 20px 20px;
   color: var(--text-muted);
   font-size: 14px;
 }

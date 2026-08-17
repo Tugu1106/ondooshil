@@ -399,6 +399,35 @@ the audio, and asked for the radio model instead of an opt-in.
   redesign removes the state that could desync rather than diagnosing it, and the
   self-healing covers the silent-player half. Worth re-checking in use.
 
+**One queue instead of two lists (2026-08-17)** — the start of a design pass; not part of
+any phase.
+
+- **`PlayedToday` and `UpNext` are gone, replaced by `components/Queue.tsx`.** They were two
+  renderings of one thing — a day of the station — and keeping them apart meant two headings,
+  two empty states and two sets of nearly identical row markup. The panel is now the song on
+  air, and under it a single scrolling list: past songs, the next one, then the rest.
+- **The list rests with the next song against the top edge**, past songs parked above it out
+  of view. You can scroll anywhere; when the pointer leaves it settles back after 400 ms. The
+  delay exists so a wandering cursor — or a finger lifting between swipes on a phone, where
+  `pointerleave` also fires — does not fight the reader.
+- **It re-settles when the anchor changes** (the station advanced, a song was added or
+  removed) **but never while the pointer is inside it.** Re-anchoring under someone who is
+  reading their history is worse than being briefly out of position.
+- **Two mechanics the layout does not work without.** `overflow-anchor: none` on the
+  container, or the browser's own scroll anchoring fights the settle; and a `.tail` spacer
+  after the last card, or the last song can never reach the top edge and the rest position is
+  unreachable whenever the list is shorter than its container.
+- **Section headings, position numbers and the raised on-air background are all gone.** Past
+  cards are dimmed to 50% and the next one carries a `Next` pill; the list explains itself.
+  The cards now own `--surface-raised`, so they are what stands out in the panel.
+- **The muted speaker hint was removed** at the user's request ("The station is already
+  running. Turn this on for the room."). The unmuted line stays — it reports something you
+  cannot otherwise see, that this machine is the one the room hears.
+- `formatDuration` moved from `UpNext.tsx` to `Queue.tsx`; `NowPlaying` imports it from there.
+- **Not verified**: the scroll and settle behaviour needs a browser. `npm run verify` was not
+  run either — it wipes the live database. Both UI strings its suites depend on (`Speaker
+  off`, `On air`/`Off air`) are untouched. `build`, `lint`, `typecheck` and 54 unit tests clean.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the

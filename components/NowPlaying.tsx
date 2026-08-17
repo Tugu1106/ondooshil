@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import type { NowPlaying as NowPlayingData } from '@/lib/types';
 
-import { formatDuration } from './UpNext';
+import { formatDuration } from './Queue';
 import styles from './Player.module.css';
 import RevealButton from './RevealButton';
 

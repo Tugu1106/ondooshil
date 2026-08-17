@@ -1,6 +1,5 @@
 /*
- * The present, in the middle of the station container. Given weight so it is obvious
- * where "now" sits between what has played and what is coming.
+ * The present, at the top of the station panel, with the day's queue below it.
  *
  * This block renders whether or not anything is on air. The player lives inside it and
  * must never be unmounted — some browsers pause playback for a hidden or torn-down
@@ -8,9 +7,8 @@
  */
 .onAir {
   padding: 18px 20px;
-  background: var(--surface-raised);
-  border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
 }
 
 .sectionTitle {
