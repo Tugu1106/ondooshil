@@ -64,3 +64,33 @@ export type StateResponse = {
 export type ApiError = {
   error: { code: string; message: string; [key: string]: unknown };
 };
+
+/* --- the sky ------------------------------------------------------------- */
+
+/**
+ * What it is doing outside the office window, reduced to the handful of states worth
+ * drawing. WMO codes are collapsed into these in `lib/weather.ts`.
+ */
+export type WeatherCondition =
+  | 'clear'
+  | 'cloudy'
+  | 'overcast'
+  | 'fog'
+  | 'rain'
+  | 'snow'
+  | 'storm';
+
+/** Where the sun is, which matters more to the palette than the weather does. */
+export type SunPhase = 'night' | 'dawn' | 'day' | 'dusk';
+
+export type Sky = {
+  condition: WeatherCondition;
+  phase: SunPhase;
+  /** Degrees Celsius, rounded. Null when the reading is unavailable. */
+  temperature: number | null;
+  /**
+   * False when the forecast could not be reached and this is the neutral fallback. The
+   * station keeps playing regardless — a weather outage must never be visible as a fault.
+   */
+  live: boolean;
+};

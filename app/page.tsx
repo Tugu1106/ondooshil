@@ -1,7 +1,9 @@
 import AuthGate from '@/components/AuthGate';
 import SignedIn from '@/components/SignedIn';
+import Sky from '@/components/Sky';
 import { currentUser, deviceUser, listUsersForPicker } from '@/lib/auth';
 import { buildState } from '@/lib/state';
+import { loadSky } from '@/lib/weather';
 
 /**
  * The whole app lives at `/` (spec §11). There is no admin page, because there is no
@@ -21,10 +23,23 @@ export default async function Home() {
   const viewer = await currentUser();
   const users = await listUsersForPicker();
 
+  // Behind both branches: the weather outside the office, cached and never fatal.
+  const sky = <Sky initial={await loadSky()} />;
+
   if (viewer) {
     // Rendered server-side so the first paint already has the queue, with no empty flash.
-    return <SignedIn user={viewer} users={users} initialState={await buildState(viewer)} />;
+    return (
+      <>
+        {sky}
+        <SignedIn user={viewer} users={users} initialState={await buildState(viewer)} />
+      </>
+    );
   }
 
-  return <AuthGate deviceUser={await deviceUser()} users={users} />;
+  return (
+    <>
+      {sky}
+      <AuthGate deviceUser={await deviceUser()} users={users} />
+    </>
+  );
 }

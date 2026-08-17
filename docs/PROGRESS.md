@@ -442,6 +442,43 @@ any phase.
   containers. Without that note the rule erodes the first time someone reaches for the
   nearest radius variable while styling a new panel.
 
+**Floating panels over a weather-responsive sky (2026-08-17)** — design pass, continued.
+
+- **The background is the weather over Ulaanbaatar, live.** The room shares one speaker,
+  one queue, one playhead and one window, so it shares the sky too — the same trick as the
+  station: something everyone present can see at once that nobody has to operate. Panels
+  became glass and float over it.
+- **This is also the start of the iridescent palette**, folded into the same layer rather
+  than fought with. The weather chooses the film's hues instead of the film being a
+  separate decorative idea: clear is prismatic pastel, rain is oil-slick teal, snow is
+  silver-blue, fog flattens and closes in, storm goes deep violet.
+- **Open-Meteo, chosen because it needs no API key and no account.** No sixth environment
+  variable, no secret that could reach a client bundle, nothing to rotate. Coordinates are
+  hardcoded to Sükhbaatar Square — multi-room is rejected by design, so a configurable
+  location would be inventing a requirement.
+- **`/api/weather` is deliberately separate from `/api/state`.** The state route is the hot
+  path at one poll per listener per 3s; the weather moves on the order of an hour. Folding
+  them together would have put an outbound HTTP call on the station's critical path.
+  Cached 900s via Next's Data Cache, which on Vercel is shared across invocations — that
+  is what makes it legal under the no-module-level-state rule (spec §2).
+- **`loadSky()` never throws.** An unreachable forecast returns a neutral overcast sky with
+  `live: false`. The radio does not depend on the weather, and an outage must not look like
+  a fault in the station.
+- **Palettes compose rather than multiply**: `[data-phase]` (4) sets the sky, `[data-condition]`
+  (7) tints the film. Hand-authoring all 28 combinations would be unmaintainable and most
+  would be near-identical — where the sun is matters far more to a palette than cloud cover.
+- **Everything animated is a transform or an opacity on a large layer.** No animated
+  gradients, filters or blur radii, which repaint every frame. Precipitation is two
+  translating sheets, not particles: a canvas loop or hundreds of DOM nodes would both cost
+  more than a page already running a video iframe can spare. `prefers-reduced-motion` stops
+  all of it.
+- **`--panel-glass` is deliberately opaque (0.82).** Text contrast must never depend on what
+  the weather is doing. Raise the alpha before reaching for a lighter text colour.
+- **Verified against the live API**: 2026-08-17 18:45 UB returned code 53 (drizzle), 17.2 °C,
+  sunrise 05:50, sunset 20:03 → `rain` / `day`, becoming `dusk` at 19:13. **Not verified**:
+  any of it in a browser, and `backdrop-filter` on six office laptops is the first thing to
+  measure if the page feels heavy.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the

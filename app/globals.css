@@ -18,6 +18,14 @@
    * carry no radius at all; only things you press do. `--radius` is therefore a *control*
    * token — do not reach for it on a container.
    */
+  /*
+   * Panels float over the weather (see components/Sky.tsx). Glass, but deliberately opaque
+   * glass: text contrast must never depend on what it is doing outside. Raise the alpha
+   * before reaching for a lighter text colour.
+   */
+  --panel-glass: rgba(23, 25, 33, 0.82);
+  --lift: 0 24px 60px rgba(0, 0, 0, 0.45);
+
   --radius: 10px;
   --gap: 16px;
 
@@ -38,6 +46,7 @@ body {
 }
 
 body {
+  /* The Sky layer paints the background; this is only what shows before it mounts. */
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);

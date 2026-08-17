@@ -1,0 +1,288 @@
+/*
+ * The weather over Ulaanbaatar, as a background.
+ *
+ * Two axes compose instead of multiplying: `[data-phase]` sets the sky (four palettes),
+ * `[data-condition]` tints the film over it and decides what falls (seven). Writing all
+ * twenty-eight combinations by hand would be unmaintainable and most of them would be
+ * nearly identical — the sun matters far more to a palette than the cloud cover does.
+ *
+ * Everything animated here is a transform or an opacity on a large, cheap layer. Nothing
+ * animates a gradient definition, a filter or a blur radius — those repaint every frame,
+ * and this page is already running a video iframe.
+ */
+
+.sky {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 100%);
+
+  /* Defaults, overridden per phase below. */
+  --sky-top: #0b1020;
+  --sky-bottom: #131826;
+  --film-a: #4f6bd8;
+  --film-b: #7b5fd0;
+  --film-c: #3fa6c8;
+  --film-opacity: 0.5;
+  --prism-opacity: 0.16;
+  --veil-opacity: 0.36;
+}
+
+/* --- the sky, by where the sun is --------------------------------------- */
+
+.sky[data-phase='night'] {
+  --sky-top: #070a16;
+  --sky-bottom: #141a2e;
+  --veil-opacity: 0.22;
+}
+
+.sky[data-phase='dawn'] {
+  --sky-top: #2b2350;
+  --sky-bottom: #d98a6a;
+  --veil-opacity: 0.42;
+}
+
+.sky[data-phase='day'] {
+  --sky-top: #2f6fc4;
+  --sky-bottom: #9fd0ea;
+  --veil-opacity: 0.52;
+}
+
+.sky[data-phase='dusk'] {
+  --sky-top: #1d2455;
+  --sky-bottom: #c9705f;
+  --veil-opacity: 0.44;
+}
+
+/* --- the film, by what the weather is doing ------------------------------ */
+
+.sky[data-condition='clear'] {
+  --film-a: #6ad2f0;
+  --film-b: #b58ef0;
+  --film-c: #ffe9a8;
+  --film-opacity: 0.55;
+  --prism-opacity: 0.22;
+}
+
+.sky[data-condition='cloudy'] {
+  --film-a: #8fb2e8;
+  --film-b: #c3b6e6;
+  --film-c: #eef2f7;
+  --film-opacity: 0.5;
+}
+
+.sky[data-condition='overcast'] {
+  --film-a: #9aa6bd;
+  --film-b: #b9c2d2;
+  --film-c: #dfe5ee;
+  --film-opacity: 0.42;
+  --prism-opacity: 0.09;
+}
+
+/* Everything flattens and closes in. */
+.sky[data-condition='fog'] {
+  --film-a: #c8ced8;
+  --film-b: #aab3c2;
+  --film-c: #e8ecf1;
+  --film-opacity: 0.62;
+  --prism-opacity: 0.05;
+  --veil-opacity: 0.3;
+}
+
+/* The oil-slick end of the palette — wet asphalt under a streetlight. */
+.sky[data-condition='rain'] {
+  --film-a: #4c8fa8;
+  --film-b: #6f7fbe;
+  --film-c: #86d6c0;
+  --film-opacity: 0.5;
+  --prism-opacity: 0.18;
+}
+
+.sky[data-condition='snow'] {
+  --film-a: #a9c8ee;
+  --film-b: #d8d2f2;
+  --film-c: #f2f7ff;
+  --film-opacity: 0.55;
+  --prism-opacity: 0.14;
+}
+
+.sky[data-condition='storm'] {
+  --film-a: #3d4a78;
+  --film-b: #6c5ba0;
+  --film-c: #2f7f96;
+  --film-opacity: 0.6;
+  --prism-opacity: 0.2;
+  --veil-opacity: 0.5;
+}
+
+/* --- the drifting film -------------------------------------------------- */
+
+/*
+ * Three washes far larger than the viewport, drifting on long unequal cycles so they never
+ * visibly repeat against each other. `soft-light` keeps them reading as light on the sky
+ * rather than as paint over it.
+ */
+.wash {
+  position: absolute;
+  width: 150vmax;
+  height: 150vmax;
+  border-radius: 50%;
+  opacity: var(--film-opacity);
+  mix-blend-mode: soft-light;
+  will-change: transform;
+}
+
+.washA {
+  top: -55vmax;
+  left: -40vmax;
+  background: radial-gradient(circle, var(--film-a) 0%, transparent 62%);
+  animation: driftA 61s ease-in-out infinite alternate;
+}
+
+.washB {
+  top: -20vmax;
+  right: -55vmax;
+  background: radial-gradient(circle, var(--film-b) 0%, transparent 60%);
+  animation: driftB 83s ease-in-out infinite alternate;
+}
+
+.washC {
+  bottom: -70vmax;
+  left: 10vmax;
+  background: radial-gradient(circle, var(--film-c) 0%, transparent 58%);
+  animation: driftC 97s ease-in-out infinite alternate;
+}
+
+@keyframes driftA {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(18vmax, 10vmax, 0) scale(1.18);
+  }
+}
+
+@keyframes driftB {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.12);
+  }
+  to {
+    transform: translate3d(-22vmax, 14vmax, 0) scale(1);
+  }
+}
+
+@keyframes driftC {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(14vmax, -18vmax, 0) scale(1.22);
+  }
+}
+
+/*
+ * The thin bright edges. A conic sweep with tight stops, blurred just enough to smear and
+ * then left at low opacity — this is the part that reads as iridescence rather than as a
+ * pastel gradient. Rotated slowly; the rotation is the "viewing angle".
+ */
+.prism {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 220vmax;
+  height: 220vmax;
+  margin: -110vmax 0 0 -110vmax;
+  opacity: var(--prism-opacity);
+  mix-blend-mode: overlay;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    var(--film-c) 14deg,
+    transparent 30deg,
+    var(--film-a) 96deg,
+    transparent 118deg,
+    var(--film-b) 190deg,
+    transparent 214deg,
+    var(--film-c) 288deg,
+    transparent 312deg,
+    transparent 360deg
+  );
+  filter: blur(40px);
+  animation: turn 240s linear infinite;
+  will-change: transform;
+}
+
+@keyframes turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --- what falls --------------------------------------------------------- */
+
+/*
+ * Precipitation as two translating sheets rather than particles. A few hundred DOM nodes
+ * or a canvas loop would both cost more than this page can spare, and at this scale the
+ * difference is not visible.
+ */
+.rain {
+  position: absolute;
+  inset: -20% 0;
+  opacity: 0.28;
+  background-image: repeating-linear-gradient(
+    102deg,
+    transparent 0 22px,
+    rgba(255, 255, 255, 0.55) 22px 23px,
+    transparent 23px 46px
+  );
+  background-size: 200px 200px;
+  animation: fall 0.7s linear infinite;
+  will-change: transform;
+}
+
+.snow {
+  position: absolute;
+  inset: -20% 0;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.9) 0 1.6px, transparent 2px),
+    radial-gradient(circle at 70% 55%, rgba(255, 255, 255, 0.75) 0 2.2px, transparent 3px),
+    radial-gradient(circle at 45% 80%, rgba(255, 255, 255, 0.6) 0 1.4px, transparent 2px);
+  background-size:
+    180px 180px,
+    260px 260px,
+    140px 140px;
+  animation: fall 9s linear infinite;
+  will-change: transform;
+}
+
+@keyframes fall {
+  to {
+    transform: translate3d(-40px, 200px, 0);
+  }
+}
+
+/*
+ * The panels float over all of this and still have to be readable at noon in June. The
+ * veil is what guarantees that, so its strength is set per phase rather than fixed.
+ */
+.veil {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  opacity: var(--veil-opacity);
+}
+
+/*
+ * A background is exactly the kind of ambient motion this setting exists for. The sky
+ * keeps its colour; it simply stops moving.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .wash,
+  .prism,
+  .rain,
+  .snow {
+    animation: none;
+  }
+}

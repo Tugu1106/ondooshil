@@ -40,9 +40,17 @@
   }
 }
 
+/*
+ * Floating over the sky rather than sitting on a page. Glass, so the weather behind stays
+ * legible through it, but only just — `--panel-glass` is kept opaque enough that text
+ * contrast never depends on what the weather happens to be doing.
+ */
 .panel {
-  background: var(--surface);
+  background: var(--panel-glass);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
   border: 1px solid var(--border);
+  box-shadow: var(--lift);
   overflow: hidden;
 }
 
