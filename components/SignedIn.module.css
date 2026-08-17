@@ -18,12 +18,6 @@
   letter-spacing: -0.01em;
 }
 
-.tagline {
-  margin: 2px 0 0;
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
 /*
  * Two panels: the station on the left, adding on the right. Deliberately separate —
  * pasting a link and watching the broadcast are different jobs.

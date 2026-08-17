@@ -4,16 +4,11 @@
   padding: 48px 20px;
 }
 
+/* Carries the tagline's old bottom margin, so the gap above the card is unchanged. */
 .brand {
-  margin: 0 0 4px;
+  margin: 0 0 32px;
   font-size: 26px;
   letter-spacing: -0.01em;
-}
-
-.tagline {
-  margin: 0 0 32px;
-  color: var(--text-muted);
-  font-size: 14px;
 }
 
 .card {

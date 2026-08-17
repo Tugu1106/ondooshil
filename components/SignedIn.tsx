@@ -146,10 +146,7 @@ export default function SignedIn({ user, users, initialState }: Props) {
   return (
     <main className={styles.page}>
       <header className={styles.header}>
-        <div>
-          <h1 className={styles.brand}>Office Radio</h1>
-          <p className={styles.tagline}>One queue, one speaker, one continuous broadcast.</p>
-        </div>
+        <h1 className={styles.brand}>Title</h1>
 
         <AccountMenu
           user={user}

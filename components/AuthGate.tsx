@@ -82,8 +82,7 @@ export default function AuthGate({ deviceUser, users }: Props) {
 
   return (
     <main className={styles.wrap}>
-      <h1 className={styles.brand}>Office Radio</h1>
-      <p className={styles.tagline}>One queue, one speaker, one continuous broadcast.</p>
+      <h1 className={styles.brand}>Title</h1>
 
       <div className={styles.card}>
         {error && <p className={styles.error}>{error}</p>}
