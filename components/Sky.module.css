@@ -2,11 +2,11 @@
  * The weather over Ulaanbaatar, as a background.
  *
  * Two axes compose instead of multiplying: `[data-phase]` sets the sky (four palettes),
- * `[data-condition]` tints the film over it and decides what falls (seven). Writing all
- * twenty-eight combinations by hand would be unmaintainable and most of them would be
- * nearly identical — the sun matters far more to a palette than the cloud cover does.
+ * `[data-condition]` sets the cloud cover, the sun's strength, the film tint and what
+ * falls (seven). Writing all twenty-eight combinations by hand would be unmaintainable and
+ * most would be near-identical — the sun matters far more to a palette than cloud cover.
  *
- * Everything animated here is a transform or an opacity on a large, cheap layer. Nothing
+ * Everything animated is a transform or an opacity on a large, cheap layer. Nothing
  * animates a gradient definition, a filter or a blur radius — those repaint every frame,
  * and this page is already running a video iframe.
  */
@@ -18,66 +18,87 @@
   overflow: hidden;
   background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 100%);
 
-  /* Defaults, overridden per phase below. */
+  /* Defaults, overridden per phase and condition below. */
   --sky-top: #0b1020;
   --sky-bottom: #131826;
   --film-a: #4f6bd8;
   --film-b: #7b5fd0;
   --film-c: #3fa6c8;
-  --film-opacity: 0.5;
+  --film-opacity: 0.45;
   --prism-opacity: 0.16;
-  --veil-opacity: 0.36;
+  --veil-opacity: 0.32;
+  --sun-opacity: 0.9;
+  --sun-core: #fff6d8;
+  --cloud-opacity: 0.3;
+  --cloud-tint: #ffffff;
 }
 
 /* --- the sky, by where the sun is --------------------------------------- */
 
 .sky[data-phase='night'] {
-  --sky-top: #070a16;
-  --sky-bottom: #141a2e;
-  --veil-opacity: 0.22;
+  --sky-top: #060a18;
+  --sky-bottom: #131a30;
+  --veil-opacity: 0.2;
+  --cloud-tint: #8f9ec4;
 }
 
 .sky[data-phase='dawn'] {
-  --sky-top: #2b2350;
-  --sky-bottom: #d98a6a;
-  --veil-opacity: 0.42;
+  --sky-top: #35285c;
+  --sky-bottom: #f0a271;
+  --veil-opacity: 0.3;
+  --sun-core: #fff0c4;
+  --cloud-tint: #ffd9c2;
 }
 
+/*
+ * Bright, and deliberately so. An earlier veil of 0.52 crushed this into something nobody
+ * would call a sunny day — the panels are opaque glass and carry their own contrast, so
+ * the sky does not need to be dimmed to protect them.
+ */
 .sky[data-phase='day'] {
-  --sky-top: #2f6fc4;
-  --sky-bottom: #9fd0ea;
-  --veil-opacity: 0.52;
+  --sky-top: #2472c9;
+  --sky-bottom: #a9d8f0;
+  --veil-opacity: 0.3;
+  --sun-core: #fffdf2;
 }
 
 .sky[data-phase='dusk'] {
-  --sky-top: #1d2455;
-  --sky-bottom: #c9705f;
-  --veil-opacity: 0.44;
+  --sky-top: #22265c;
+  --sky-bottom: #e0785c;
+  --veil-opacity: 0.32;
+  --sun-core: #ffd9a0;
+  --cloud-tint: #ffc7ae;
 }
 
-/* --- the film, by what the weather is doing ------------------------------ */
+/* --- the weather, by what it is doing ----------------------------------- */
 
 .sky[data-condition='clear'] {
   --film-a: #6ad2f0;
   --film-b: #b58ef0;
   --film-c: #ffe9a8;
-  --film-opacity: 0.55;
-  --prism-opacity: 0.22;
+  --film-opacity: 0.4;
+  --prism-opacity: 0.2;
+  --sun-opacity: 1;
+  --cloud-opacity: 0;
 }
 
 .sky[data-condition='cloudy'] {
   --film-a: #8fb2e8;
   --film-b: #c3b6e6;
   --film-c: #eef2f7;
-  --film-opacity: 0.5;
+  --film-opacity: 0.42;
+  --sun-opacity: 0.75;
+  --cloud-opacity: 0.4;
 }
 
 .sky[data-condition='overcast'] {
   --film-a: #9aa6bd;
   --film-b: #b9c2d2;
   --film-c: #dfe5ee;
-  --film-opacity: 0.42;
-  --prism-opacity: 0.09;
+  --film-opacity: 0.4;
+  --prism-opacity: 0.08;
+  --sun-opacity: 0.22;
+  --cloud-opacity: 0.72;
 }
 
 /* Everything flattens and closes in. */
@@ -85,9 +106,10 @@
   --film-a: #c8ced8;
   --film-b: #aab3c2;
   --film-c: #e8ecf1;
-  --film-opacity: 0.62;
-  --prism-opacity: 0.05;
-  --veil-opacity: 0.3;
+  --film-opacity: 0.6;
+  --prism-opacity: 0.04;
+  --sun-opacity: 0.15;
+  --cloud-opacity: 0.85;
 }
 
 /* The oil-slick end of the palette — wet asphalt under a streetlight. */
@@ -95,25 +117,138 @@
   --film-a: #4c8fa8;
   --film-b: #6f7fbe;
   --film-c: #86d6c0;
-  --film-opacity: 0.5;
-  --prism-opacity: 0.18;
+  --film-opacity: 0.45;
+  --prism-opacity: 0.16;
+  --sun-opacity: 0.2;
+  --cloud-opacity: 0.7;
+  --cloud-tint: #b9c6d8;
 }
 
 .sky[data-condition='snow'] {
   --film-a: #a9c8ee;
   --film-b: #d8d2f2;
   --film-c: #f2f7ff;
-  --film-opacity: 0.55;
-  --prism-opacity: 0.14;
+  --film-opacity: 0.5;
+  --prism-opacity: 0.12;
+  --sun-opacity: 0.25;
+  --cloud-opacity: 0.6;
+  --cloud-tint: #dce6f5;
 }
 
 .sky[data-condition='storm'] {
   --film-a: #3d4a78;
   --film-b: #6c5ba0;
   --film-c: #2f7f96;
-  --film-opacity: 0.6;
-  --prism-opacity: 0.2;
-  --veil-opacity: 0.5;
+  --film-opacity: 0.55;
+  --prism-opacity: 0.18;
+  --sun-opacity: 0.08;
+  --cloud-opacity: 0.85;
+  --cloud-tint: #6d7794;
+  --veil-opacity: 0.4;
+}
+
+/* --- the sun and the moon ------------------------------------------------ */
+
+/*
+ * Placed by `sunProgress` from the server, so this never needs a clock. `screen` keeps it
+ * reading as light rather than as a painted disc, and the glow is part of the same
+ * gradient so there is one layer to composite instead of two.
+ */
+.sun {
+  position: absolute;
+  width: 34vmax;
+  height: 34vmax;
+  margin: -17vmax 0 0 -17vmax;
+  border-radius: 50%;
+  opacity: var(--sun-opacity);
+  mix-blend-mode: screen;
+  background: radial-gradient(
+    circle,
+    var(--sun-core) 0%,
+    var(--sun-core) 7%,
+    rgba(255, 240, 200, 0.55) 13%,
+    rgba(255, 226, 170, 0.22) 30%,
+    transparent 62%
+  );
+  animation: breathe 14s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.moon {
+  position: absolute;
+  top: 16%;
+  right: 14%;
+  width: 16vmax;
+  height: 16vmax;
+  border-radius: 50%;
+  opacity: calc(var(--sun-opacity) * 0.8);
+  mix-blend-mode: screen;
+  background: radial-gradient(
+    circle,
+    #eef2ff 0%,
+    #dbe4ff 6%,
+    rgba(190, 208, 255, 0.35) 14%,
+    transparent 55%
+  );
+}
+
+@keyframes breathe {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.06);
+  }
+}
+
+/* --- cloud cover --------------------------------------------------------- */
+
+/*
+ * Soft, very wide ellipses drifting sideways at different speeds. Not meant to be read as
+ * individual clouds — they are cover, and their job is to make an overcast day obviously
+ * overcast at a glance.
+ */
+.cloud {
+  position: absolute;
+  border-radius: 50%;
+  opacity: var(--cloud-opacity);
+  background: radial-gradient(closest-side, var(--cloud-tint) 0%, transparent 72%);
+  will-change: transform;
+}
+
+.cloudA {
+  top: 4%;
+  left: -30%;
+  width: 90vmax;
+  height: 34vmax;
+  animation: driftRight 120s linear infinite;
+}
+
+.cloudB {
+  top: 26%;
+  left: -50%;
+  width: 120vmax;
+  height: 26vmax;
+  opacity: calc(var(--cloud-opacity) * 0.8);
+  animation: driftRight 185s linear infinite;
+}
+
+.cloudC {
+  top: -8%;
+  left: -40%;
+  width: 70vmax;
+  height: 40vmax;
+  opacity: calc(var(--cloud-opacity) * 0.6);
+  animation: driftRight 240s linear infinite;
+}
+
+@keyframes driftRight {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(180vmax, 0, 0);
+  }
 }
 
 /* --- the drifting film -------------------------------------------------- */
@@ -229,7 +364,7 @@
 .rain {
   position: absolute;
   inset: -20% 0;
-  opacity: 0.28;
+  opacity: 0.3;
   background-image: repeating-linear-gradient(
     102deg,
     transparent 0 22px,
@@ -244,7 +379,7 @@
 .snow {
   position: absolute;
   inset: -20% 0;
-  opacity: 0.5;
+  opacity: 0.55;
   background-image:
     radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.9) 0 1.6px, transparent 2px),
     radial-gradient(circle at 70% 55%, rgba(255, 255, 255, 0.75) 0 2.2px, transparent 3px),
@@ -264,8 +399,9 @@
 }
 
 /*
- * The panels float over all of this and still have to be readable at noon in June. The
- * veil is what guarantees that, so its strength is set per phase rather than fixed.
+ * The panels float over all of this and still have to be readable at noon in June. They
+ * are opaque glass and carry most of that themselves, so this stays light — heavy enough
+ * to settle the sky under the header text, not so heavy that a clear day looks overcast.
  */
 .veil {
   position: absolute;
@@ -276,9 +412,11 @@
 
 /*
  * A background is exactly the kind of ambient motion this setting exists for. The sky
- * keeps its colour; it simply stops moving.
+ * keeps its colour and its sun; it simply stops moving.
  */
 @media (prefers-reduced-motion: reduce) {
+  .sun,
+  .cloud,
   .wash,
   .prism,
   .rain,

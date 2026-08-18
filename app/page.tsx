@@ -23,22 +23,28 @@ export default async function Home() {
   const viewer = await currentUser();
   const users = await listUsersForPicker();
 
-  // Behind both branches: the weather outside the office, cached and never fatal.
-  const sky = <Sky initial={await loadSky()} />;
+  // Behind both branches, and named in words in the header: the weather outside the
+  // office. Cached, and never fatal — an unreachable forecast is a neutral sky.
+  const sky = await loadSky();
 
   if (viewer) {
     // Rendered server-side so the first paint already has the queue, with no empty flash.
     return (
       <>
-        {sky}
-        <SignedIn user={viewer} users={users} initialState={await buildState(viewer)} />
+        <Sky initial={sky} />
+        <SignedIn
+          user={viewer}
+          users={users}
+          initialState={await buildState(viewer)}
+          sky={sky}
+        />
       </>
     );
   }
 
   return (
     <>
-      {sky}
+      <Sky initial={sky} />
       <AuthGate deviceUser={await deviceUser()} users={users} />
     </>
   );

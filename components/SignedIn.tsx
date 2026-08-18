@@ -5,7 +5,7 @@ import { useCallback, useState } from 'react';
 
 import type { PickerUser, PublicUser } from '@/lib/auth';
 import { positionSec, useStation } from '@/lib/client/useStation';
-import type { NowPlaying as NowPlayingData, QueueRow, StateResponse } from '@/lib/types';
+import type { NowPlaying as NowPlayingData, QueueRow, Sky, StateResponse } from '@/lib/types';
 
 import AccountMenu from './AccountMenu';
 import AddSongForm from './AddSongForm';
@@ -13,6 +13,7 @@ import NowPlaying from './NowPlaying';
 import Queue from './Queue';
 import styles from './SignedIn.module.css';
 import SpeakerToggle from './SpeakerToggle';
+import WeatherReadout from './WeatherReadout';
 import YouTubePlayer from './YouTubePlayer';
 
 /**
@@ -30,9 +31,11 @@ type Props = {
   user: PublicUser;
   users: PickerUser[];
   initialState: StateResponse;
+  /** What it is doing outside. Server-rendered, then refreshed slowly by the readout. */
+  sky: Sky;
 };
 
-export default function SignedIn({ user, users, initialState }: Props) {
+export default function SignedIn({ user, users, initialState, sky }: Props) {
   const router = useRouter();
   const station = useStation(initialState);
   const [busy, setBusy] = useState(false);
@@ -147,6 +150,8 @@ export default function SignedIn({ user, users, initialState }: Props) {
     <main className={styles.page}>
       <header className={styles.header}>
         <h1 className={styles.brand}>Title</h1>
+
+        <WeatherReadout initial={sky} />
 
         <AccountMenu
           user={user}

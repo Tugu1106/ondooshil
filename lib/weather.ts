@@ -4,7 +4,7 @@ import type { Sky, SunPhase, WeatherCondition } from './types';
 import { stationTimeZone } from './time';
 
 /**
- * What it is doing outside, for the background.
+ * What it is doing outside, for the background and the readout.
  *
  * The whole office is in one room in Ulaanbaatar, so there is exactly one sky worth
  * drawing — the one they can see through the window. That is the same reason the station
@@ -41,13 +41,60 @@ const TWILIGHT_MINUTES = 50;
 const FALLBACK: Sky = {
   condition: 'overcast',
   phase: 'day',
+  label: 'Weather unavailable',
   temperature: null,
+  windKph: null,
+  sunProgress: 0.5,
   live: false,
 };
 
 type Forecast = {
-  current?: { weather_code?: number; temperature_2m?: number; is_day?: number };
+  current?: {
+    weather_code?: number;
+    temperature_2m?: number;
+    is_day?: number;
+    wind_speed_10m?: number;
+  };
   daily?: { sunrise?: string[]; sunset?: string[] };
+};
+
+/**
+ * The WMO code table, in the words a person would use.
+ *
+ * Kept separate from `conditionOf` on purpose: the art only needs seven states, but the
+ * readout is worth being precise in. "Light drizzle" tells you something that "rain" does
+ * not, and it is the difference between the background looking broken and looking correct
+ * when you glance out of the window.
+ */
+const WMO_LABELS: Record<number, string> = {
+  0: 'Clear sky',
+  1: 'Mainly clear',
+  2: 'Partly cloudy',
+  3: 'Overcast',
+  45: 'Fog',
+  48: 'Freezing fog',
+  51: 'Light drizzle',
+  53: 'Drizzle',
+  55: 'Heavy drizzle',
+  56: 'Freezing drizzle',
+  57: 'Heavy freezing drizzle',
+  61: 'Light rain',
+  63: 'Rain',
+  65: 'Heavy rain',
+  66: 'Freezing rain',
+  67: 'Heavy freezing rain',
+  71: 'Light snow',
+  73: 'Snow',
+  75: 'Heavy snow',
+  77: 'Snow grains',
+  80: 'Light showers',
+  81: 'Showers',
+  82: 'Violent showers',
+  85: 'Light snow showers',
+  86: 'Snow showers',
+  95: 'Thunderstorm',
+  96: 'Thunderstorm with hail',
+  99: 'Thunderstorm with heavy hail',
 };
 
 /**
@@ -61,9 +108,9 @@ function conditionOf(code: number | undefined): WeatherCondition {
   if (code === 3) return 'overcast';
   if (code === 45 || code === 48) return 'fog';
   if (code >= 95) return 'storm';
-  // 71–77 snowfall and snow grains, 85–86 snow showers.
+  // 71-77 snowfall and snow grains, 85-86 snow showers.
   if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snow';
-  // 51–67 drizzle and rain including freezing, 80–82 rain showers.
+  // 51-67 drizzle and rain including freezing, 80-82 rain showers.
   if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return 'rain';
   return 'overcast';
 }
@@ -96,29 +143,42 @@ function localMinutes(isoLocal: string | undefined): number | null {
  * Where the sun is. This drives the palette more than the weather does — an overcast night
  * and an overcast noon should not look remotely alike.
  */
-function phaseOf(forecast: Forecast, now: Date): SunPhase {
-  const sunrise = localMinutes(forecast.daily?.sunrise?.[0]);
-  const sunset = localMinutes(forecast.daily?.sunset?.[0]);
-
+function phaseOf(
+  sunrise: number | null,
+  sunset: number | null,
+  nowMinutes: number,
+  isDay: number | undefined,
+): SunPhase {
   if (sunrise === null || sunset === null) {
     // No sun times: fall back to the API's own day flag rather than guessing.
-    return forecast.current?.is_day === 0 ? 'night' : 'day';
+    return isDay === 0 ? 'night' : 'day';
   }
 
-  const nowMinutes = minutesOfDay(now);
   if (Math.abs(nowMinutes - sunrise) <= TWILIGHT_MINUTES) return 'dawn';
   if (Math.abs(nowMinutes - sunset) <= TWILIGHT_MINUTES) return 'dusk';
   return nowMinutes > sunrise && nowMinutes < sunset ? 'day' : 'night';
 }
 
 /**
- * The current sky over the office. Cached for {@link CACHE_SECONDS}; never throws.
+ * How far through daylight it is, so the client can place the sun on its arc without
+ * needing a clock of its own — the same reason `/api/state` carries `serverTime`.
  */
+function sunProgressOf(
+  sunrise: number | null,
+  sunset: number | null,
+  nowMinutes: number,
+): number | null {
+  if (sunrise === null || sunset === null || sunset <= sunrise) return null;
+  if (nowMinutes < sunrise || nowMinutes > sunset) return null;
+  return (nowMinutes - sunrise) / (sunset - sunrise);
+}
+
+/** The current sky over the office. Cached for `CACHE_SECONDS`; never throws. */
 export async function loadSky(now: Date = new Date()): Promise<Sky> {
   const url =
     'https://api.open-meteo.com/v1/forecast' +
     `?latitude=${LATITUDE}&longitude=${LONGITUDE}` +
-    '&current=weather_code,temperature_2m,is_day' +
+    '&current=weather_code,temperature_2m,is_day,wind_speed_10m' +
     '&daily=sunrise,sunset&forecast_days=1' +
     `&timezone=${encodeURIComponent(stationTimeZone())}`;
 
@@ -130,12 +190,21 @@ export async function loadSky(now: Date = new Date()): Promise<Sky> {
     if (!response.ok) return FALLBACK;
 
     const forecast = (await response.json()) as Forecast;
+    const code = forecast.current?.weather_code;
     const temperature = forecast.current?.temperature_2m;
+    const wind = forecast.current?.wind_speed_10m;
+
+    const sunrise = localMinutes(forecast.daily?.sunrise?.[0]);
+    const sunset = localMinutes(forecast.daily?.sunset?.[0]);
+    const nowMinutes = minutesOfDay(now);
 
     return {
-      condition: conditionOf(forecast.current?.weather_code),
-      phase: phaseOf(forecast, now),
+      condition: conditionOf(code),
+      phase: phaseOf(sunrise, sunset, nowMinutes, forecast.current?.is_day),
+      label: (code !== undefined ? WMO_LABELS[code] : undefined) ?? 'Unknown',
       temperature: typeof temperature === 'number' ? Math.round(temperature) : null,
+      windKph: typeof wind === 'number' ? Math.round(wind) : null,
+      sunProgress: sunProgressOf(sunrise, sunset, nowMinutes),
       live: true,
     };
   } catch {

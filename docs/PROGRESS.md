@@ -479,6 +479,36 @@ any phase.
   any of it in a browser, and `backdrop-filter` on six office laptops is the first thing to
   measure if the page feels heavy.
 
+**The sky had no sun in it (2026-08-18)** — reported by the user: the weather was not
+readable, and a sunny day did not look sunny.
+
+- **The API was right; the drawing was wrong.** Checked live: Open-Meteo returned code 1,
+  "mainly clear", 20.7 degC, 34% cloud for Ulaanbaatar at the time of the complaint. No
+  reason to change provider. The first version only re-tinted the drifting film per
+  condition, so a clear day had no sun in the sky and nothing distinguished it from an
+  overcast one but hue. **Weather has to be depicted, not suggested.**
+- **A sun on its arc, and cloud cover.** `sunProgress` (0 at sunrise, 1 at sunset, null
+  once down) is computed server-side, so the client places the sun without a clock of its
+  own — same reasoning as `serverTime` for the playhead. A moon takes a fixed seat at
+  night. Three very wide soft ellipses drift sideways as cover, at an opacity set per
+  condition: invisible when clear, heavy when overcast.
+- **The day veil was crushing the sky.** It was 0.52 of near-black over a bright blue
+  gradient, which is most of why a sunny day looked grey. Now 0.30. The panels are opaque
+  glass at 0.82 and carry their own contrast, so the sky never needed dimming to protect
+  them; `.brand` gained a text-shadow since it sits directly on the sky.
+- **`WeatherReadout` says it in words** — icon, temperature, the precise WMO label, wind,
+  and the city. A background that *might* be decorative reads as decorative; naming it is
+  what turns the sky into a fact about Ulaanbaatar. Wind is only shown at 12 km/h and above.
+- **`label` is a separate field from `condition`.** The art needs seven states; the readout
+  is worth being precise in. "Light drizzle" tells you something "rain" does not, and it is
+  the difference between the background looking broken and looking correct when you glance
+  out of the window.
+- **`lib/client/useSky.ts` is shared by the background and the readout**, so the picture and
+  the words can never disagree. Two 15-minute pollers against one cached route.
+- **Verified live**: `/api/weather` returned `{clear, day, "Mainly clear", 21 degC, 5 km/h,
+  sunProgress 0.38}`. **Still not verified in a browser** — including whether the sun reads
+  at the right size and whether `backdrop-filter` on three glass surfaces is smooth.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the

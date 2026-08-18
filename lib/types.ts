@@ -69,7 +69,7 @@ export type ApiError = {
 
 /**
  * What it is doing outside the office window, reduced to the handful of states worth
- * drawing. WMO codes are collapsed into these in `lib/weather.ts`.
+ * drawing differently. WMO codes are collapsed into these in `lib/weather.ts`.
  */
 export type WeatherCondition =
   | 'clear'
@@ -86,8 +86,17 @@ export type SunPhase = 'night' | 'dawn' | 'day' | 'dusk';
 export type Sky = {
   condition: WeatherCondition;
   phase: SunPhase;
+  /** The precise WMO wording — "Mainly clear", "Light drizzle". For the readout, not the art. */
+  label: string;
   /** Degrees Celsius, rounded. Null when the reading is unavailable. */
   temperature: number | null;
+  /** km/h, rounded. Null when unavailable. */
+  windKph: number | null;
+  /**
+   * How far through daylight it is: 0 at sunrise, 1 at sunset, null while the sun is down.
+   * Computed server-side so the client never needs a clock to place the sun.
+   */
+  sunProgress: number | null;
   /**
    * False when the forecast could not be reached and this is the neutral fallback. The
    * station keeps playing regardless — a weather outage must never be visible as a fault.
