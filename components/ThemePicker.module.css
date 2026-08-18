@@ -45,6 +45,23 @@
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
+/* A hairline between the two kinds of choice, rather than a heavier separator. */
+.group + .group {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.groupName {
+  margin: 0;
+  padding: 8px 10px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
 .item {
   display: flex;
   align-items: center;
@@ -104,6 +121,18 @@
 
 .swatch[data-theme='iridescent'] {
   background: linear-gradient(140deg, #a8c0ff, #f4e2a0 35%, #b8f2e0 65%, #cbb2f0);
+}
+
+.swatch[data-theme='heaven'] {
+  background: linear-gradient(140deg, #eaf4ff, #ffffff 30%, #ffeec2 68%, #cfe4ff);
+}
+
+.swatch[data-theme='light'] {
+  background: linear-gradient(140deg, #ffffff, #eceef2 60%, #d7dbe3);
+}
+
+.swatch[data-theme='fantasy'] {
+  background: linear-gradient(140deg, #1d1140, #6b3fa0 40%, #2f9e7a 72%, #f0c86a);
 }
 
 .swatch[data-theme='cyberpunk'] {

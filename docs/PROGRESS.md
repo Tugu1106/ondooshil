@@ -530,6 +530,18 @@ readable, and a sunny day did not look sunny.
 - **The swatches are the only visual definition the unbuilt themes have.** A sketch of
   intent, not a palette — do not treat them as decided.
 
+**Themes split into Regular and Unusual (2026-08-18)**
+
+- **Regular**: Light, Dark, Cozy. **Unusual**: Weather, Iridescent, Heaven, Fantasy,
+  Cyberpunk, Responsive. Light, Heaven and Fantasy are new; still all placeholders except
+  Weather.
+- **Why two groups rather than one list**: they are two different decisions. Regular is
+  choosing a comfortable place to read from. Unusual is choosing a mood, and some of those
+  are not static at all — Weather follows the sky outside, Responsive would follow whatever
+  is on air. A flat list makes the strange ones look like ordinary alternatives to Dark.
+- `THEMES` became `THEME_GROUPS`; `ThemeId` is still a union derived from the data, now
+  through the nested shape, so adding a theme is still a one-line edit that types itself.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the
