@@ -29,16 +29,15 @@ export default async function Home() {
 
   if (viewer) {
     // Rendered server-side so the first paint already has the queue, with no empty flash.
+    // The background belongs to SignedIn from here: which layer renders is a theme
+    // decision, and the theme lives with the picker that changes it.
     return (
-      <>
-        <Sky initial={sky} />
-        <SignedIn
-          user={viewer}
-          users={users}
-          initialState={await buildState(viewer)}
-          sky={sky}
-        />
-      </>
+      <SignedIn
+        user={viewer}
+        users={users}
+        initialState={await buildState(viewer)}
+        sky={sky}
+      />
     );
   }
 

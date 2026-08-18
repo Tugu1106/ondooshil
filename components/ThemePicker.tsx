@@ -17,8 +17,11 @@ import styles from './ThemePicker.module.css';
  * component changes at all. Until those exist, the attribute changes and nothing else
  * does — that is expected, not a bug.
  *
- * Not persisted. A reload returns to Weather. Worth adding once a second theme is real;
- * not worth the hydration handling while there is only one.
+ * Controlled, because the choice also decides which background layer `SignedIn` renders —
+ * two copies of that state would be two things that can disagree.
+ *
+ * Not persisted. A reload returns to Weather. Worth adding once the themes are all real;
+ * not worth the hydration handling before that.
  */
 
 export const THEMES = [
@@ -34,8 +37,12 @@ export type ThemeId = (typeof THEMES)[number]['id'];
 
 export const DEFAULT_THEME: ThemeId = 'weather';
 
-export default function ThemePicker() {
-  const [theme, setTheme] = useState<ThemeId>(DEFAULT_THEME);
+type Props = {
+  value: ThemeId;
+  onChange: (theme: ThemeId) => void;
+};
+
+export default function ThemePicker({ value: theme, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
@@ -93,7 +100,7 @@ export default function ThemePicker() {
               role="menuitemradio"
               aria-checked={option.id === theme}
               onClick={() => {
-                setTheme(option.id);
+                onChange(option.id);
                 setOpen(false);
               }}
             >

@@ -13,12 +13,13 @@
   margin-bottom: 24px;
 }
 
-/* Sits directly on the sky, which is bright at noon and near-black at 3am. */
+/* Sits directly on the background, which changes brightness with the theme and the hour. */
 .brand {
   margin: 0;
   font-size: 22px;
   letter-spacing: -0.01em;
-  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.55);
+  color: var(--ink-on-background);
+  text-shadow: var(--ink-shadow);
 }
 
 /* Theme and account, kept together at the far end of the header. */

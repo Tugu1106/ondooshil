@@ -530,6 +530,43 @@ readable, and a sunny day did not look sunny.
 - **The swatches are the only visual definition the unbuilt themes have.** A sketch of
   intent, not a palette — do not treat them as decided.
 
+**Iridescent theme: a WebGL field (2026-08-18)** — from a poster reference the user supplied.
+
+- **Generated, not warped.** Distorting the reference image was the other option and was
+  rejected: the poster has its own text baked into it, and a procedural field flows forever
+  with no seam, no edge smear, no image to ship, and resizes rather than stretches.
+- **No library.** One fragment shader over two triangles. three.js or OGL would be hundreds
+  of kilobytes to do that, on a page whose job is streaming audio over office wifi.
+  `lib/client/gl.ts` is the whole runner, and it returns `null` on any failure — no WebGL,
+  a refusing driver, a shader that will not compile — so the CSS gradient underneath stands
+  in. A background must never be able to break the station.
+- **The look decomposes into four parts**, which is all the shader is: a blue-to-lavender
+  field with cloudy fbm variation; an S-curve of two unrelated sines plus low-frequency
+  noise (one sine alone reads unmistakably as a sine); thin-film banding keyed on the
+  *signed distance* to that curve through a cosine palette — colour as a function of
+  distance is what makes it read as iridescence rather than as a rainbow; then a white-hot
+  core and two blooms. Plus grain, which is not decoration: an 8-bit panel bands visibly
+  across gradients this wide.
+- **Half resolution, 30fps, stops when the tab is hidden.** Nobody looks closely at a
+  background, and the YouTube iframe beside it has the real work. `prefers-reduced-motion`
+  draws one frame and stops.
+- **Two GLSL portability fixes worth remembering**: `highp` is *optional* in a WebGL1
+  fragment shader, so it is now guarded by `GL_FRAGMENT_PRECISION_HIGH` or an older GPU
+  compiles nothing at all; and `smoothstep` with `edge0 > edge1` is undefined by spec, not
+  merely reversed, so it is written as `1.0 - smoothstep(lo, hi, x)`.
+- **Backticks in a GLSL comment terminate the template literal.** Cost a build. Do not write
+  prose backticks inside shader source held in a JS template string.
+- **`ThemePicker` became controlled and the background moved into `SignedIn`.** Which layer
+  renders is a theme decision, so the theme cannot live inside the picker — two copies of
+  that state would be two things that can disagree. `page.tsx` now renders `Sky` only for
+  the signed-out gate.
+- **`--ink-on-background` / `--ink-shadow`** are new tokens for the little text that sits on
+  the background rather than on a panel — currently only the title. Any pale theme must
+  override them or white-on-pale is unreadable; Iridescent sets a deep violet ink.
+- **Not seen in a browser.** Build, lint, typecheck and 54 tests are clean, and the GLSL has
+  been read for ES 1.00 compliance, but nothing has confirmed what it actually looks like or
+  that it compiles on real hardware.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the
