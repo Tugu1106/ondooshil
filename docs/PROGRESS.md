@@ -509,6 +509,27 @@ readable, and a sunny day did not look sunny.
   sunProgress 0.38}`. **Still not verified in a browser** — including whether the sun reads
   at the right size and whether `backdrop-filter` on three glass surfaces is smooth.
 
+**Theme picker, as a placeholder (2026-08-18)**
+
+- **A dropdown in the header, left of the account control**, listing six themes: Weather,
+  Iridescent, Cyberpunk, Cozy, Dark, Responsive. **Only Weather is built** — it is the live
+  sky. The rest are named so the shape of the choice exists before the work does, and so
+  the surface that will carry them is in the header now rather than retrofitted around
+  whichever theme gets built first.
+- **Choosing one writes `data-theme` on `<html>`.** That is the hook every future theme
+  should hang off: a stylesheet keyed on `:root[data-theme='cyberpunk']` needs no component
+  changes at all. Until those stylesheets exist the attribute changes and nothing else
+  does, which is expected rather than a defect.
+- **Written in an effect, never during render.** Touching `document` while rendering is the
+  same impurity React 19 rejects in the player and the clock offset.
+- **Not persisted.** A reload returns to Weather. Worth adding once a second theme is real;
+  not worth the hydration handling while there is only one.
+- **Shaped deliberately like `AccountMenu`** — same trigger height, same glass, same
+  outside-click and Escape handling. Two controls side by side in a header should not look
+  like they came from different apps.
+- **The swatches are the only visual definition the unbuilt themes have.** A sketch of
+  intent, not a palette — do not treat them as decided.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the

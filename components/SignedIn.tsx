@@ -13,6 +13,7 @@ import NowPlaying from './NowPlaying';
 import Queue from './Queue';
 import styles from './SignedIn.module.css';
 import SpeakerToggle from './SpeakerToggle';
+import ThemePicker from './ThemePicker';
 import WeatherReadout from './WeatherReadout';
 import YouTubePlayer from './YouTubePlayer';
 
@@ -153,13 +154,18 @@ export default function SignedIn({ user, users, initialState, sky }: Props) {
 
         <WeatherReadout initial={sky} />
 
-        <AccountMenu
-          user={user}
-          users={users}
-          busy={busy}
-          onSignOut={handleSignOut}
-          onResetPin={handleResetPin}
-        />
+        {/* Theme first, then the account: appearance is changed far more often. */}
+        <div className={styles.controls}>
+          <ThemePicker />
+
+          <AccountMenu
+            user={user}
+            users={users}
+            busy={busy}
+            onSignOut={handleSignOut}
+            onResetPin={handleResetPin}
+          />
+        </div>
       </header>
 
       {station.error && <p className={styles.error}>{station.error}</p>}

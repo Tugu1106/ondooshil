@@ -1,0 +1,136 @@
+/*
+ * Deliberately shaped like the account menu next to it — same trigger height, same glass,
+ * same dropdown. Two controls sitting side by side in a header should not look like they
+ * came from different apps.
+ */
+
+.wrap {
+  position: relative;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 8px;
+  background: var(--panel-glass);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 14px;
+  min-height: 40px;
+}
+
+.trigger:hover,
+.trigger[aria-expanded='true'] {
+  border-color: var(--accent);
+}
+
+.caret {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  min-width: 260px;
+  padding: 6px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--text);
+  text-align: left;
+  min-height: 44px;
+}
+
+.item:hover {
+  background: var(--surface);
+}
+
+.itemText {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemLabel {
+  display: block;
+  font-size: 14px;
+}
+
+.itemNote {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.tick {
+  width: 14px;
+  color: var(--accent);
+  font-size: 13px;
+}
+
+/*
+ * A one-glance preview of each theme, so the list is legible before any of them are built.
+ * These are the only place the unbuilt themes have any visual definition at all — treat
+ * them as a sketch of intent, not as the palette.
+ */
+.swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.swatch[data-theme='weather'] {
+  background: linear-gradient(140deg, #2472c9, #a9d8f0 55%, #fff6d8);
+}
+
+.swatch[data-theme='iridescent'] {
+  background: linear-gradient(140deg, #a8c0ff, #f4e2a0 35%, #b8f2e0 65%, #cbb2f0);
+}
+
+.swatch[data-theme='cyberpunk'] {
+  background: linear-gradient(140deg, #0b0016, #ff2bd6 55%, #16f2ff);
+}
+
+.swatch[data-theme='cozy'] {
+  background: linear-gradient(140deg, #2b1d16, #b5642f 55%, #f0c48a);
+}
+
+.swatch[data-theme='dark'] {
+  background: linear-gradient(140deg, #0e0f13, #2a2e3a);
+}
+
+.swatch[data-theme='responsive'] {
+  background: linear-gradient(140deg, #12131a, #7b5fd0 45%, #ff7a45);
+}
+
+/* The label is the least important part on a phone; the swatch still identifies it. */
+@media (max-width: 640px) {
+  .trigger {
+    font-size: 0;
+    gap: 6px;
+    padding: 6px 10px;
+  }
+
+  .trigger .caret {
+    font-size: 10px;
+  }
+}
