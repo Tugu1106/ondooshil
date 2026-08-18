@@ -5,22 +5,15 @@ import { useCallback, useState } from 'react';
 
 import type { PickerUser, PublicUser } from '@/lib/auth';
 import { positionSec, useStation } from '@/lib/client/useStation';
-import type {
-  NowPlaying as NowPlayingData,
-  QueueRow,
-  Sky as SkyData,
-  StateResponse,
-} from '@/lib/types';
+import type { NowPlaying as NowPlayingData, QueueRow, Sky, StateResponse } from '@/lib/types';
 
 import AccountMenu from './AccountMenu';
 import AddSongForm from './AddSongForm';
-import IridescentField from './IridescentField';
 import NowPlaying from './NowPlaying';
 import Queue from './Queue';
 import styles from './SignedIn.module.css';
-import Sky from './Sky';
 import SpeakerToggle from './SpeakerToggle';
-import ThemePicker, { DEFAULT_THEME, type ThemeId } from './ThemePicker';
+import ThemePicker from './ThemePicker';
 import WeatherReadout from './WeatherReadout';
 import YouTubePlayer from './YouTubePlayer';
 
@@ -40,7 +33,7 @@ type Props = {
   users: PickerUser[];
   initialState: StateResponse;
   /** What it is doing outside. Server-rendered, then refreshed slowly by the readout. */
-  sky: SkyData;
+  sky: Sky;
 };
 
 export default function SignedIn({ user, users, initialState, sky }: Props) {
@@ -57,13 +50,6 @@ export default function SignedIn({ user, users, initialState, sky }: Props) {
    */
   const [muted, setMuted] = useState(true);
   const [volume, setVolume] = useState(70);
-
-  /*
-   * The theme owns the background layer, so it lives here rather than inside the picker.
-   * Only Weather and Iridescent are built; the rest set `data-theme` and otherwise fall
-   * back to the sky, which is the honest placeholder.
-   */
-  const [theme, setTheme] = useState<ThemeId>(DEFAULT_THEME);
 
   const { serverNow, refresh } = station;
 
@@ -162,77 +148,73 @@ export default function SignedIn({ user, users, initialState, sky }: Props) {
   );
 
   return (
-    <>
-      {theme === 'iridescent' ? <IridescentField /> : <Sky initial={sky} />}
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <h1 className={styles.brand}>Title</h1>
 
-      <main className={styles.page}>
-        <header className={styles.header}>
-          <h1 className={styles.brand}>Title</h1>
+        <WeatherReadout initial={sky} />
 
-          <WeatherReadout initial={sky} />
+        {/* Theme first, then the account: appearance is changed far more often. */}
+        <div className={styles.controls}>
+          <ThemePicker />
 
-          {/* Theme first, then the account: appearance is changed far more often. */}
-          <div className={styles.controls}>
-            <ThemePicker value={theme} onChange={setTheme} />
-
-            <AccountMenu
-              user={user}
-              users={users}
-              busy={busy}
-              onSignOut={handleSignOut}
-              onResetPin={handleResetPin}
-            />
-          </div>
-        </header>
-
-        {station.error && <p className={styles.error}>{station.error}</p>}
-        {notice && <p className={styles.notice}>{notice}</p>}
-
-        <div className={styles.layout}>
-          {/* The song on air, and under it the day's queue. */}
-          <section className={styles.panel}>
-            <NowPlaying
-              playing={station.state.playing}
-              positionAt={positionAt}
-              onSkip={handleSkip}
-              onReveal={(playing) => handleReveal({ id: playing.queueItemId })}
-              revealsRemaining={station.state.me.revealsRemaining}
-              busy={busy}
-              player={
-                <YouTubePlayer
-                  playing={station.state.playing}
-                  muted={muted}
-                  volume={volume}
-                  positionAt={positionAt}
-                  onFailed={handleFailed}
-                />
-              }
-              controls={
-                <SpeakerToggle
-                  muted={muted}
-                  volume={volume}
-                  onMutedChange={setMuted}
-                  onVolumeChange={setVolume}
-                />
-              }
-            />
-
-            <Queue
-              played={station.state.playedToday}
-              upNext={station.state.upNext}
-              onRemove={handleRemove}
-              onReveal={handleReveal}
-              revealsRemaining={station.state.me.revealsRemaining}
-              busy={busy}
-            />
-          </section>
-
-          <aside className={`${styles.panel} ${styles.addPanel}`}>
-            <h2 className={styles.panelTitle}>Add a song</h2>
-            <AddSongForm onAdded={refresh} />
-          </aside>
+          <AccountMenu
+            user={user}
+            users={users}
+            busy={busy}
+            onSignOut={handleSignOut}
+            onResetPin={handleResetPin}
+          />
         </div>
-      </main>
-    </>
+      </header>
+
+      {station.error && <p className={styles.error}>{station.error}</p>}
+      {notice && <p className={styles.notice}>{notice}</p>}
+
+      <div className={styles.layout}>
+        {/* The song on air, and under it the day's queue. */}
+        <section className={styles.panel}>
+          <NowPlaying
+            playing={station.state.playing}
+            positionAt={positionAt}
+            onSkip={handleSkip}
+            onReveal={(playing) => handleReveal({ id: playing.queueItemId })}
+            revealsRemaining={station.state.me.revealsRemaining}
+            busy={busy}
+            player={
+              <YouTubePlayer
+                playing={station.state.playing}
+                muted={muted}
+                volume={volume}
+                positionAt={positionAt}
+                onFailed={handleFailed}
+              />
+            }
+            controls={
+              <SpeakerToggle
+                muted={muted}
+                volume={volume}
+                onMutedChange={setMuted}
+                onVolumeChange={setVolume}
+              />
+            }
+          />
+
+          <Queue
+            played={station.state.playedToday}
+            upNext={station.state.upNext}
+            onRemove={handleRemove}
+            onReveal={handleReveal}
+            revealsRemaining={station.state.me.revealsRemaining}
+            busy={busy}
+          />
+        </section>
+
+        <aside className={`${styles.panel} ${styles.addPanel}`}>
+          <h2 className={styles.panelTitle}>Add a song</h2>
+          <AddSongForm onAdded={refresh} />
+        </aside>
+      </div>
+    </main>
   );
 }

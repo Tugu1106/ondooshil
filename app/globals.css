@@ -26,24 +26,11 @@
   --panel-glass: rgba(23, 25, 33, 0.82);
   --lift: 0 24px 60px rgba(0, 0, 0, 0.45);
 
-  /*
-   * For the little text that sits on the background itself rather than on a panel. Every
-   * theme with a pale background must override this, or white-on-pale is unreadable.
-   */
-  --ink-on-background: var(--text);
-  --ink-shadow: 0 1px 12px rgba(0, 0, 0, 0.55);
-
   --radius: 10px;
   --gap: 16px;
 
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-
-/* The Iridescent field is pale, so anything sitting straight on it has to darken. */
-:root[data-theme='iridescent'] {
-  --ink-on-background: #2b2547;
-  --ink-shadow: 0 1px 10px rgba(255, 255, 255, 0.5);
 }
 
 *,
