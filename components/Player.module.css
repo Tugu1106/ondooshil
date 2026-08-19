@@ -58,11 +58,104 @@
  * Grows to fill the space it is given, up to 480px wide, and holds 16:9 at every size.
  */
 .stage {
+  position: relative; /* the dead-air cover is absolute against this */
   flex: 1 1 300px;
   max-width: 480px;
   aspect-ratio: 16 / 9;
   overflow: hidden;
   background: #000;
+}
+
+/*
+ * Dead air.
+ *
+ * An empty queue is meant to be silent — there is no fallback playlist, by design. But
+ * YouTube's idle screen is a black rectangle with a play button on it, which reads as
+ * "broken" rather than as "between songs". This covers that with static, the way a set
+ * off air has always looked.
+ *
+ * A cover, deliberately, and not a change to the player: the iframe underneath stays
+ * mounted, sized and visible, so the never-hide rule holds. Nothing here makes a sound.
+ */
+.deadAir {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #0a0b0f;
+  pointer-events: none; /* as inert as the player it covers */
+}
+
+/*
+ * Analog snow. An SVG turbulence tile jumped around by whole frames — `steps(1)` is what
+ * makes it flicker instead of slide, which is the difference between static and a moving
+ * texture.
+ */
+.deadAir::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  animation: snow 0.5s steps(1) infinite;
+}
+
+@keyframes snow {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  25% {
+    transform: translate3d(-6%, 4%, 0);
+  }
+  50% {
+    transform: translate3d(3%, -7%, 0);
+  }
+  75% {
+    transform: translate3d(-4%, -3%, 0);
+  }
+}
+
+/* One slow bright band drifting down, like a set that has lost its lock. */
+.deadAir::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 46%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.05) 54%,
+    transparent 100%
+  );
+  background-size: 100% 220%;
+  animation: roll 7s linear infinite;
+}
+
+@keyframes roll {
+  to {
+    background-position: 0 220%;
+  }
+}
+
+/* The studio tally. Dark, because off air is precisely when the light is not lit. */
+.tally {
+  position: relative; /* above the static */
+  padding: 5px 12px;
+  background: rgba(10, 11, 15, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deadAir::before,
+  .deadAir::after {
+    animation: none;
+  }
 }
 
 .frame,

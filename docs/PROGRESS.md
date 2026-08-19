@@ -542,6 +542,24 @@ readable, and a sunny day did not look sunny.
 - `THEMES` became `THEME_GROUPS`; `ThemeId` is still a union derived from the data, now
   through the nested shape, so adding a theme is still a one-line edit that types itself.
 
+**Dead air (2026-08-18)**
+
+- **An empty queue was showing YouTube's idle screen** — a black rectangle with a play
+  button — which reads as "broken" rather than as "between songs". Silence is correct by
+  design (no fallback playlist, spec §6), so the fix is to make silence *look* deliberate,
+  not to fill it.
+- **It is a cover, not a change to the player.** A sibling laid over the iframe, rendered
+  only while `playing` is null. The iframe underneath stays mounted, sized and visible, so
+  landmine 13 is untouched — and nothing is hidden even while covered, since there is
+  nothing playing to be paused. Verified the audit's invariant still holds: zero
+  `display: none` declarations outside comments in `Player.module.css`.
+- **Purely visual. Nothing here makes a sound**, and no audio path was added.
+- Analog snow from an inline SVG `feTurbulence` tile, jumped by whole frames with
+  `steps(1)` — that is what makes it flicker like static rather than slide like a texture.
+  Plus one slow rolling band, and a dark studio tally reading "Off air", dark because off
+  air is exactly when the light is not lit. `prefers-reduced-motion` stops both animations.
+- **Not seen in a browser.**
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the

@@ -212,6 +212,17 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
     <div className={styles.stage} aria-hidden>
       {/* Visible, never display:none. */}
       <div ref={mountRef} className={styles.frame} />
+
+      {/*
+        Dead air. A sibling laid *over* the player, never a change to it — the iframe stays
+        mounted, sized and visible underneath, so the rule above is untouched. It only
+        exists while nothing is on air, and it is purely visual: silence stays silent.
+      */}
+      {!playing && (
+        <div className={styles.deadAir}>
+          <span className={styles.tally}>Off air</span>
+        </div>
+      )}
     </div>
   );
 }
