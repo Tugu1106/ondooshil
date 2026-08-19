@@ -224,12 +224,6 @@
   border-color: var(--accent);
 }
 
-.hint {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
 .skip {
   margin-top: 12px;
   padding: 8px 16px;

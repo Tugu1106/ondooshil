@@ -92,7 +92,7 @@ export default function NowPlaying({
             </>
           ) : (
             // Silence is the correct empty state. No filler, no fallback playlist.
-            <p className={styles.silent}>Off air — the queue is empty.</p>
+            <p className={styles.silent}>Queue is empty</p>
           )}
         </div>
 

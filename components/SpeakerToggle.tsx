@@ -44,8 +44,6 @@ export default function SpeakerToggle({ muted, volume, onMutedChange, onVolumeCh
           />
         </label>
       )}
-
-      {!muted && <p className={styles.hint}>This machine is the room speaker.</p>}
     </div>
   );
 }
