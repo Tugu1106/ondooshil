@@ -52,10 +52,14 @@ declare global {
 
 /** Player states the IFrame API reports. */
 export const PLAYER_STATE = {
+  /** Before a load, and after `stopVideo`. Shows the poster. */
   UNSTARTED: -1,
+  /** The video finished. Shows YouTube's end screen — share, watch-on-YouTube, suggestions. */
   ENDED: 0,
   PLAYING: 1,
   PAUSED: 2,
+  /** Stalled mid-song. A spinner, no furniture — not worth covering for. */
+  BUFFERING: 3,
   /** Loaded but not playing — where a blocked autoplay attempt lands. */
   CUED: 5,
 } as const;

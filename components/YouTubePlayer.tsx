@@ -122,8 +122,32 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
           return;
         }
 
+        /*
+         * The three states that paint YouTube's own furniture over the video: the end
+         * screen when a song finishes, and the poster with its play button before one
+         * starts. Cover immediately.
+         *
+         * ENDED matters most. The server does not advance until the next poll lands, so
+         * without this the end screen — share, watch on YouTube, the suggestion grid — is
+         * on the wall for the whole round trip. `controls: 0` does not suppress any of it,
+         * and neither does `rel: 0` any more: it now means "suggestions from this channel"
+         * rather than none at all.
+         *
+         * PAUSED and BUFFERING are deliberately absent. A pause is auto-resumed within a
+         * frame or two and a buffer shows only a spinner, so covering either would flash
+         * the screen at a station that is running perfectly well.
+         */
+        if (
+          playerState === PLAYER_STATE.ENDED ||
+          playerState === PLAYER_STATE.UNSTARTED ||
+          playerState === PLAYER_STATE.CUED
+        ) {
+          setLive(false);
+        }
+
         // Nobody asked for either of these — the transport controls are hidden. A
         // background tab, a suspended iframe, or an autoplay attempt that did not take.
+        // ENDED is not resumed: replaying the song is the one thing that must not happen.
         if (playerState === PLAYER_STATE.PAUSED || playerState === PLAYER_STATE.CUED) {
           player.playVideo();
         }

@@ -651,6 +651,28 @@ readable, and a sunny day did not look sunny.
   gradient fading down from the panel colour. The gradient is what makes the top row read
   as continuing upward instead of being cut off. It fades to nothing once you reach the top.
 
+**The end screen was the half that was missed (2026-08-18)**
+
+- The `live` cover added earlier only handled the *start* of a song. **`ENDED` was
+  unhandled**, so when a video finished, `live` stayed true and YouTube's end screen —
+  share, watch on YouTube, the suggestion grid — was on the wall for the entire round trip
+  until the server advanced. That is the longest and most visible gap of the three.
+- **`ENDED`, `UNSTARTED` and `CUED` now all clear `live`.** Those are exactly the states
+  that paint YouTube's own furniture over the video.
+- **`PAUSED` and `BUFFERING` deliberately do not.** A pause is auto-resumed within a frame
+  or two and a buffer shows only a spinner, so covering either would flash the screen at a
+  station that is running perfectly well. `BUFFERING` was missing from `PLAYER_STATE`
+  entirely and is now named, so the omission reads as a decision rather than an oversight.
+- **`ENDED` is still never resumed** — replaying the song that just finished is the one
+  thing that must not happen, which is why it is in the cover list but not the `playVideo()`
+  list.
+- **Known limit, not fixable by any player option**: creator end screens — the subscribe
+  button and video cards an uploader bakes into the last 5–20 seconds — are part of the
+  video, not the chrome. `iv_load_policy: 3` kills annotations but not these, `rel: 0` now
+  only means "suggestions from this channel", and `modestbranding` was retired by YouTube.
+  The only way to hide them is to cover the final seconds proactively, which is possible
+  (the client knows the exact position) but hides real video. Not done; flagged to the user.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the
