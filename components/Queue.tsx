@@ -172,9 +172,22 @@ export default function Queue({
   }
 
   function handleLeave() {
-    insideRef.current = false;
     if (settleTimer.current) clearTimeout(settleTimer.current);
-    settleTimer.current = setTimeout(() => settle(true), SETTLE_MS);
+
+    settleTimer.current = setTimeout(() => {
+      /*
+       * Confirm the pointer really is gone before moving anything.
+       *
+       * Removing an element from under the cursor fires a leave on its ancestors — which
+       * is exactly what spending a reveal does, since the button disappears the moment it
+       * is paid for. Without this check, revealing scrolls the list, which is both
+       * surprising and unrelated to what was asked for.
+       */
+      if (listRef.current?.matches(':hover')) return;
+
+      insideRef.current = false;
+      settle(true);
+    }, SETTLE_MS);
   }
 
   function handleScroll() {
@@ -214,8 +227,8 @@ export default function Queue({
           const { row, past } = entry;
           const isNext = index === focusIndex + 1;
           const note = statusNote(row);
+          // Null means the adder is hidden from this viewer, and the badge becomes a ticket.
           const who = attribution(row);
-          const meta = [who, note].filter(Boolean).join(' · ');
 
           return (
             <div key={row.id} ref={anchor} className={styles.row}>
@@ -230,24 +243,33 @@ export default function Queue({
                 }`}
               >
                 <span className={styles.cardMain}>
-                  <span className={`${styles.title} ${note ? styles.struck : ''}`}>
-                    {row.title}
+                  <span className={styles.titleRow}>
+                    <span className={`${styles.title} ${note ? styles.struck : ''}`}>
+                      {row.title}
+                    </span>
+
+                    {/*
+                      Top right, and one slot for both: the ticket that buys the name sits
+                      exactly where the name lands, so spending it replaces the button in
+                      place rather than reflowing the card.
+                    */}
+                    {who === null ? (
+                      <RevealButton
+                        remaining={revealsRemaining}
+                        busy={busy}
+                        onReveal={() => onReveal(row)}
+                      />
+                    ) : (
+                      <span className={styles.who}>{who}</span>
+                    )}
                   </span>
+
                   <span className={styles.cardMeta}>
                     {isNext && <span className={styles.next}>Next</span>}
-                    {meta && <span className={row.isMine ? styles.mine : undefined}>{meta}</span>}
+                    {note && <span>{note}</span>}
                     <span className={styles.duration}>{formatDuration(row.durationSec)}</span>
                   </span>
                 </span>
-
-                {/* Only where the adder is hidden from this viewer. */}
-                {row.addedByName === null && (
-                  <RevealButton
-                    remaining={revealsRemaining}
-                    busy={busy}
-                    onReveal={() => onReveal(row)}
-                  />
-                )}
 
                 {/* Only ever on your own pending rows. The server enforces it regardless. */}
                 {row.canRemove && (

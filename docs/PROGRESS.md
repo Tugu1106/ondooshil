@@ -691,6 +691,25 @@ readable, and a sunny day did not look sunny.
   "suggestions from this channel", and `modestbranding` was retired by YouTube. Covering is
   the only lever, and it was tried and rejected on how it looked.
 
+**Revealing no longer scrolls the queue (2026-08-18)**
+
+- **The bug**: spending a reveal scrolled the list. Cause was a **spurious `pointerleave`** —
+  removing an element from under the cursor fires a leave on its ancestors, and the reveal
+  button disappears the instant it is paid for. The settle timer therefore armed while the
+  pointer had never actually left.
+- **Fix**: the settle callback confirms `listRef.current?.matches(':hover')` before moving
+  anything. Worth remembering as a general hazard — any control that removes itself on
+  click inside a hover-sensitive container will do this.
+- **The name and the ticket now share one slot, top right of the card.** Spending a reveal
+  swaps the button for the name in place instead of reflowing the card under the cursor,
+  which is the other half of why the interaction felt unstable. `.mine` is gone; the name
+  is a colour-mixed accent badge whether or not it is yours.
+- **The reveal is applied from the POST response**, not from the refresh that follows —
+  `/api/reveal/:id` already answers with the name, so it appears in one round trip instead
+  of two. `withReveals()` paints it onto rows the next `/api/state` has not caught up with.
+  It can only *add* a name the server already agreed to hand over, so it cannot leak
+  anything unpaid for.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the

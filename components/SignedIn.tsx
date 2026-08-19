@@ -52,6 +52,16 @@ export default function SignedIn({ user, users, initialState, sky }: Props) {
   const [muted, setMuted] = useState(true);
   const [volume, setVolume] = useState(70);
 
+  /*
+   * Names bought this session, keyed by queue item.
+   *
+   * `POST /api/reveal/:id` answers with the name, so it is shown the moment it arrives
+   * rather than after the refresh that follows — one round trip instead of two. The next
+   * `/api/state` carries the same name and this simply stops mattering. Local, private,
+   * and never sent anywhere: exactly like the reveal itself.
+   */
+  const [revealed, setRevealed] = useState<Record<string, string>>({});
+
   const { serverNow, refresh } = station;
 
   const positionAt = useCallback(
@@ -97,14 +107,35 @@ export default function SignedIn({ user, users, initialState, sky }: Props) {
     async (row: { id: string }) => {
       setBusy(true);
       const response = await fetch(`/api/reveal/${row.id}`, { method: 'POST' });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => null);
+      const payload = await response.json().catch(() => null);
+
+      if (response.ok) {
+        // Straight onto the row, in the slot the button was in.
+        if (payload?.name) setRevealed((prior) => ({ ...prior, [row.id]: payload.name }));
+      } else {
         setNotice(payload?.error?.message ?? 'Could not reveal that one.');
       }
+
       await refresh();
       setBusy(false);
     },
     [refresh],
+  );
+
+  /**
+   * Paints names bought this session onto rows the server has not caught up with yet.
+   *
+   * Only ever *adds* a name the server already agreed to hand over — it cannot reveal
+   * anything that was not paid for, and it leaves rows the server already names alone.
+   */
+  const withReveals = useCallback(
+    (rows: QueueRow[]): QueueRow[] =>
+      rows.map((row) =>
+        row.addedByName === null && revealed[row.id]
+          ? { ...row, addedByName: revealed[row.id], revealed: true }
+          : row,
+      ),
+    [revealed],
   );
 
   const handleRemove = useCallback(
@@ -148,6 +179,12 @@ export default function SignedIn({ user, users, initialState, sky }: Props) {
     [router],
   );
 
+  const nowPlaying = station.state.playing;
+  const playingRevealed =
+    nowPlaying && nowPlaying.addedByName === null && revealed[nowPlaying.queueItemId]
+      ? { ...nowPlaying, addedByName: revealed[nowPlaying.queueItemId] }
+      : nowPlaying;
+
   return (
     <main className={styles.page}>
       <header className={styles.header}>
@@ -177,7 +214,7 @@ export default function SignedIn({ user, users, initialState, sky }: Props) {
         <div className={styles.station}>
           <section className={styles.panel}>
             <NowPlaying
-              playing={station.state.playing}
+              playing={playingRevealed}
               positionAt={positionAt}
               onSkip={handleSkip}
               onReveal={(playing) => handleReveal({ id: playing.queueItemId })}
@@ -205,9 +242,9 @@ export default function SignedIn({ user, users, initialState, sky }: Props) {
 
           <section className={styles.panel}>
             <Queue
-              played={station.state.playedToday}
-              playing={station.state.playing}
-              upNext={station.state.upNext}
+              played={withReveals(station.state.playedToday)}
+              playing={playingRevealed}
+              upNext={withReveals(station.state.upNext)}
               onRemove={handleRemove}
               onReveal={handleReveal}
               revealsRemaining={station.state.me.revealsRemaining}
