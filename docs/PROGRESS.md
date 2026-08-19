@@ -560,6 +560,20 @@ readable, and a sunny day did not look sunny.
   air is exactly when the light is not lit. `prefers-reduced-motion` stops both animations.
 - **Not seen in a browser.**
 
+**Three boxes, and the toggle names the action (2026-08-18)**
+
+- **The left panel split in two.** On air and the queue were one container; they are now
+  two, stacked in a `.station` grid with the standard gap. Three boxes total, because they
+  are three things to look at. The empty-queue message therefore lands inside the queue box
+  where it belongs, rather than floating under the player.
+- **`.onAir` lost its bottom divider and margin** — the gap between panels does that job now.
+- **Speaker off / Speaker on became Unmute / Mute**, naming the action rather than the state.
+- **That broke four verification assertions, all fixed.** Worth knowing why one of them
+  changed shape: "Mute" is a substring of "Unmute", so `grep -q 'Mute'` can no longer
+  distinguish audible from muted. The "not already audible" check now reads
+  `aria-pressed="true"`, which is unambiguous and does not depend on the wording at all —
+  the better assertion regardless.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the

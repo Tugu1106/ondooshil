@@ -29,7 +29,7 @@ export default function SpeakerToggle({ muted, volume, onMutedChange, onVolumeCh
         onClick={() => onMutedChange(!muted)}
         aria-pressed={!muted}
       >
-        {muted ? '🔇 Speaker off' : '🔊 Speaker on'}
+        {muted ? '🔊 Unmute' : '🔇 Mute'}
       </button>
 
       {!muted && (

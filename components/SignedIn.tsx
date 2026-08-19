@@ -20,9 +20,10 @@ import YouTubePlayer from './YouTubePlayer';
 /**
  * The signed-in page.
  *
- * Two panels. The left one is the station: the song on air, and below it the day's queue
- * as one continuous list. The right one is for adding a song — a different job, so a
- * different panel.
+ * Three boxes, because they are three different things to look at: what is on air, the
+ * day's queue, and the form for adding to it. The first two stack in the left column, the
+ * third stands alone on the right — pasting a link and watching the broadcast are separate
+ * jobs and should not share a container.
  *
  * Account actions live in the menu at the top right, which is the only place `is_owner`
  * surfaces at all. There is no admin area, because there is no admin.
@@ -172,43 +173,47 @@ export default function SignedIn({ user, users, initialState, sky }: Props) {
       {notice && <p className={styles.notice}>{notice}</p>}
 
       <div className={styles.layout}>
-        {/* The song on air, and under it the day's queue. */}
-        <section className={styles.panel}>
-          <NowPlaying
-            playing={station.state.playing}
-            positionAt={positionAt}
-            onSkip={handleSkip}
-            onReveal={(playing) => handleReveal({ id: playing.queueItemId })}
-            revealsRemaining={station.state.me.revealsRemaining}
-            busy={busy}
-            player={
-              <YouTubePlayer
-                playing={station.state.playing}
-                muted={muted}
-                volume={volume}
-                positionAt={positionAt}
-                onFailed={handleFailed}
-              />
-            }
-            controls={
-              <SpeakerToggle
-                muted={muted}
-                volume={volume}
-                onMutedChange={setMuted}
-                onVolumeChange={setVolume}
-              />
-            }
-          />
+        {/* Three boxes: what is on air, the day's queue, and adding to it. */}
+        <div className={styles.station}>
+          <section className={styles.panel}>
+            <NowPlaying
+              playing={station.state.playing}
+              positionAt={positionAt}
+              onSkip={handleSkip}
+              onReveal={(playing) => handleReveal({ id: playing.queueItemId })}
+              revealsRemaining={station.state.me.revealsRemaining}
+              busy={busy}
+              player={
+                <YouTubePlayer
+                  playing={station.state.playing}
+                  muted={muted}
+                  volume={volume}
+                  positionAt={positionAt}
+                  onFailed={handleFailed}
+                />
+              }
+              controls={
+                <SpeakerToggle
+                  muted={muted}
+                  volume={volume}
+                  onMutedChange={setMuted}
+                  onVolumeChange={setVolume}
+                />
+              }
+            />
+          </section>
 
-          <Queue
-            played={station.state.playedToday}
-            upNext={station.state.upNext}
-            onRemove={handleRemove}
-            onReveal={handleReveal}
-            revealsRemaining={station.state.me.revealsRemaining}
-            busy={busy}
-          />
-        </section>
+          <section className={styles.panel}>
+            <Queue
+              played={station.state.playedToday}
+              upNext={station.state.upNext}
+              onRemove={handleRemove}
+              onReveal={handleReveal}
+              revealsRemaining={station.state.me.revealsRemaining}
+              busy={busy}
+            />
+          </section>
+        </div>
 
         <aside className={`${styles.panel} ${styles.addPanel}`}>
           <h2 className={styles.panelTitle}>Add a song</h2>

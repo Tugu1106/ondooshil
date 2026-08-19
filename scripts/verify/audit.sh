@@ -173,7 +173,8 @@ const src=require('fs').readFileSync('components/YouTubePlayer.tsx','utf8').repl
 const at=src.indexOf('loadVideoById({');
 const block=src.slice(src.lastIndexOf('useEffect(', at), src.indexOf(']', src.indexOf('}, [', at)));
 console.log(/\bmuted\b/.test(block) ? 'no' : 'yes')")"
-check "the served page shows the speaker off" "yes" "$(curl -s -b "$A" "$BASE/" | grep -q 'Speaker off' && echo yes || echo no)"
+# The button names the action, so "Unmute" on offer means the speaker is currently off.
+check "the served page opens muted" "yes" "$(curl -s -b "$A" "$BASE/" | grep -q 'Unmute' && echo yes || echo no)"
 # One flag, not two: a separate "listening" state is exactly how a button ends up claiming
 # sound is playing while the room hears silence.
 check "no listening flag survives anywhere" 0 "$(code components lib | grep -c 'listening' || true)"
