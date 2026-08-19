@@ -574,6 +574,23 @@ readable, and a sunny day did not look sunny.
   `aria-pressed="true"`, which is unambiguous and does not depend on the wording at all —
   the better assertion regardless.
 
+**The screen becomes the point (2026-08-18)**
+
+- **The player runs the full width of the on-air box**, 16:9, with the track details
+  centred underneath. It used to share a row with a text column that took half the space to
+  say what one line says.
+- **The "On air" / "Off air" heading is gone**, and so is the "Queue is empty" sentence.
+  When nothing is playing, the screen shows dead air, which says it better than a label; the
+  queue box below says the rest. `.sectionTitle`, `.layout` and `.silent` went with them.
+- **The on-air block now carries `data-on-air`.** `player-test.sh` asserted on the heading
+  text to prove that block renders whether or not anything is playing — which matters,
+  because the iframe lives inside it and a conditional block would unmount it. Removing the
+  heading would have broken that check; it now reads the attribute, so copy changes cannot
+  quietly turn it into a no-op.
+- **The dead-air tally still reads "Off air"** on the static screen. That is the studio
+  tally rather than a heading, and it was kept deliberately — flagged to the user in case
+  they meant that one too.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the

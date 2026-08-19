@@ -10,25 +10,13 @@
   padding: 18px 20px;
 }
 
-.sectionTitle {
-  margin: 0 0 12px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
 
-.layout {
-  display: flex;
-  gap: 18px;
-  align-items: flex-start;
-  flex-wrap: wrap;
-}
 
+/* Under the screen, centred on it. */
 .details {
-  flex: 1 1 240px;
+  margin-top: 16px;
   min-width: 0;
+  text-align: center;
 }
 
 .title {
@@ -44,22 +32,17 @@
   color: var(--text-muted);
 }
 
-.silent {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 15px;
-}
 
 /*
- * The player stays visible for the life of the page. `display: none` causes some
- * browsers to pause playback, so it is sized down rather than hidden.
+ * The screen. Full width of its box and 16:9 at every size — this is what the room is
+ * looking at, so it gets the space rather than sharing a row with a column of text.
  *
- * Grows to fill the space it is given, up to 480px wide, and holds 16:9 at every size.
+ * The player stays visible for the life of the page. `display: none` causes some browsers
+ * to pause playback, so it is never hidden; dead air covers it instead.
  */
 .stage {
   position: relative; /* the dead-air cover is absolute against this */
-  flex: 1 1 300px;
-  max-width: 480px;
+  width: 100%;
   aspect-ratio: 16 / 9;
   overflow: hidden;
   background: #000;
@@ -183,6 +166,7 @@
   background: var(--accent);
 }
 
+/* Elapsed and total, pushed to the ends of the bar above them. */
 .times {
   display: flex;
   justify-content: space-between;
@@ -195,6 +179,7 @@
 .controls {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
   margin-top: 16px;
   flex-wrap: wrap;

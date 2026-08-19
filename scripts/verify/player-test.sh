@@ -112,7 +112,9 @@ check "the page opens muted" "yes" "$(grep -q 'Unmute' "$H" && echo yes || echo 
 check "and not already audible" "yes" "$(grep -q 'aria-pressed="true"' "$H" && echo no || echo yes)"
 # The on-air block renders whether or not anything is playing, because the iframe lives
 # inside it and must never be unmounted.
-check "the on-air block is rendered server-side" "yes" "$(grep -qE 'On air|Off air' "$H" && echo yes || echo no)"
+# Asserted on the marker attribute, not on wording: the block carries no heading now, and
+# copy changes should not be able to quietly turn this check into a no-op.
+check "the on-air block is rendered server-side" "yes" "$(grep -q 'data-on-air' "$H" && echo yes || echo no)"
 check "no display:none declaration in the player styles" "yes" "$(node -e "
 // Strip comments first: the file *explains* why display:none is forbidden, and that
 // prose must not be mistaken for a declaration.
