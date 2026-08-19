@@ -49,19 +49,6 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
   const playerRef = useRef<Player | null>(null);
   const [ready, setReady] = useState(false);
 
-  /*
-   * Whether the player has actually reached PLAYING for the item currently loaded.
-   *
-   * Between `loadVideoById` and the first frame, YouTube shows its own poster — the big
-   * play button and the share buttons — for a second or three. `controls: 0` does not
-   * suppress that, because it is the pre-playback state rather than the transport bar. So
-   * the screen stays covered until playback is genuinely under way.
-   *
-   * Set false only on a *load*, never on a pause or a buffer: a mid-song stall must not
-   * flash a cover over a station that is already running.
-   */
-  const [live, setLive] = useState(false);
-
   /** The queue item currently loaded into the player, for id-based change detection. */
   const loadedItemRef = useRef<string | null>(null);
 
@@ -113,8 +100,6 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
         if (!player || loadedItemRef.current === null) return;
 
         if (playerState === PLAYER_STATE.PLAYING) {
-          // Playing for real — the poster is gone, so the screen can be uncovered.
-          setLive(true);
           // Covers a resume after any interruption: rejoin the broadcast where it is now,
           // not where it stopped. The 2-second tolerance makes the check that follows an
           // ordinary load a no-op.
@@ -122,32 +107,10 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
           return;
         }
 
-        /*
-         * The three states that paint YouTube's own furniture over the video: the end
-         * screen when a song finishes, and the poster with its play button before one
-         * starts. Cover immediately.
-         *
-         * ENDED matters most. The server does not advance until the next poll lands, so
-         * without this the end screen — share, watch on YouTube, the suggestion grid — is
-         * on the wall for the whole round trip. `controls: 0` does not suppress any of it,
-         * and neither does `rel: 0` any more: it now means "suggestions from this channel"
-         * rather than none at all.
-         *
-         * PAUSED and BUFFERING are deliberately absent. A pause is auto-resumed within a
-         * frame or two and a buffer shows only a spinner, so covering either would flash
-         * the screen at a station that is running perfectly well.
-         */
-        if (
-          playerState === PLAYER_STATE.ENDED ||
-          playerState === PLAYER_STATE.UNSTARTED ||
-          playerState === PLAYER_STATE.CUED
-        ) {
-          setLive(false);
-        }
-
         // Nobody asked for either of these — the transport controls are hidden. A
         // background tab, a suspended iframe, or an autoplay attempt that did not take.
-        // ENDED is not resumed: replaying the song is the one thing that must not happen.
+        // ENDED is deliberately not here: replaying the song that just finished is the one
+        // thing that must not happen.
         if (playerState === PLAYER_STATE.PAUSED || playerState === PLAYER_STATE.CUED) {
           player.playVideo();
         }
@@ -184,7 +147,6 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
       if (loadedItemRef.current !== null) {
         player.stopVideo();
         loadedItemRef.current = null;
-        setLive(false);
       }
       return;
     }
@@ -193,9 +155,6 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
 
     // Join wherever the broadcast already is — tuning in mid-song is normal, and waiting
     // for the next track would make the app look broken on open.
-    // Cover the screen again for the new song, until it is genuinely playing.
-    setLive(false);
-
     player.loadVideoById({
       videoId: playing.videoId,
       startSeconds: positionAt(playing),
@@ -257,20 +216,19 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
       <div ref={mountRef} className={styles.frame} />
 
       {/*
-        Two covers, both siblings laid *over* the player and never a change to it — the
-        iframe stays mounted, sized and visible underneath, so the rule above is untouched.
+        Dead air. A sibling laid *over* the player, never a change to it — the iframe stays
+        mounted, sized and visible underneath, so the rule above is untouched. It only
+        exists while nothing is on air, and it is purely visual: silence stays silent.
 
-        Nothing on air: dead air, which is purely visual. Silence stays silent.
-        On air but not yet started: a plain screen, hiding YouTube's poster and its play
-        and share buttons until the song is actually running.
+        Nothing covers the player *between* songs. YouTube's own poster and end screen show
+        there, and they cannot be suppressed — a cover over them read as more broken than
+        the chrome it was hiding.
       */}
       {!playing && (
         <div className={styles.deadAir}>
           <span className={styles.tally}>Off air</span>
         </div>
       )}
-
-      {playing && !live && <div className={styles.tuning} />}
     </div>
   );
 }

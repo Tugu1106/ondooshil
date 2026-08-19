@@ -673,6 +673,24 @@ readable, and a sunny day did not look sunny.
   The only way to hide them is to cover the final seconds proactively, which is possible
   (the client knows the exact position) but hides real video. Not done; flagged to the user.
 
+**The transition cover is gone (2026-08-18)** — reversing the two entries above it.
+
+- **Covering the gaps between songs read as more broken than the chrome it hid.** A dark
+  screen appearing and vanishing on every transition looks like a fault; YouTube's poster
+  and end screen look like YouTube. The user's call, and the right one.
+- Removed: the `live` state, all four `setLive` calls, the `ENDED`/`UNSTARTED`/`CUED` cover
+  branch, the `.tuning` styles, and `BUFFERING` from `PLAYER_STATE` — that constant only
+  existed to document why it was excluded from the cover list.
+- **Dead air stays.** It covers *silence*, which is a different thing: the station having
+  nothing to play is a real state worth showing, not a half-second gap worth hiding.
+- **`ENDED` is still absent from the auto-resume branch**, and the comment now says why in
+  its own right rather than as an aside: replaying the song that just finished is the one
+  thing that must not happen.
+- **Do not rebuild this.** The chrome cannot be suppressed by any player option —
+  `controls: 0` does not cover the pre-playback or end states, `rel: 0` now only means
+  "suggestions from this channel", and `modestbranding` was retired by YouTube. Covering is
+  the only lever, and it was tried and rejected on how it looked.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the
