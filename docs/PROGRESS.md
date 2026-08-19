@@ -591,6 +591,27 @@ readable, and a sunny day did not look sunny.
   tally rather than a heading, and it was kept deliberately — flagged to the user in case
   they meant that one too.
 
+**A toast that leaves, and no YouTube chrome on a transition (2026-08-18)**
+
+- **The add confirmation was permanent and named the song.** It now reads "Added to the
+  queue" and clears itself after 1.8s, in green (`--success`, a new token — the old style
+  reused the orange accent). It deliberately no longer names the track: the queue below
+  already shows what was added, so a confirmation repeating the title and then sitting
+  there until the next add was a receipt for something already visible.
+- **Failures still do not auto-clear.** Those you need time to read and act on.
+- **YouTube's poster was showing on every transition** — the big play button and the share
+  buttons, for a second or three. `controls: 0` does not suppress it, because that is the
+  *pre-playback* state rather than the transport bar.
+- **Fixed with a second cover, not with player options.** `YouTubePlayer` now tracks `live`
+  — whether the player has actually reached `PLAYING` for the item currently loaded — and
+  holds a plain dark screen over the iframe until it has. Same sibling-overlay technique as
+  dead air, so the iframe is still never hidden or unmounted.
+- **`live` is cleared only on a load, never on a pause or a buffer.** That distinction is
+  the whole thing: clearing it on any non-playing state would flash a cover over a station
+  that is already running every time the network hiccuped.
+- The two covers are visually distinct on purpose. Static means the station is silent; a
+  transition is not that, so it gets a plain screen that has not lit up yet.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the

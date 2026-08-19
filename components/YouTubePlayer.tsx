@@ -49,6 +49,19 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
   const playerRef = useRef<Player | null>(null);
   const [ready, setReady] = useState(false);
 
+  /*
+   * Whether the player has actually reached PLAYING for the item currently loaded.
+   *
+   * Between `loadVideoById` and the first frame, YouTube shows its own poster — the big
+   * play button and the share buttons — for a second or three. `controls: 0` does not
+   * suppress that, because it is the pre-playback state rather than the transport bar. So
+   * the screen stays covered until playback is genuinely under way.
+   *
+   * Set false only on a *load*, never on a pause or a buffer: a mid-song stall must not
+   * flash a cover over a station that is already running.
+   */
+  const [live, setLive] = useState(false);
+
   /** The queue item currently loaded into the player, for id-based change detection. */
   const loadedItemRef = useRef<string | null>(null);
 
@@ -100,6 +113,8 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
         if (!player || loadedItemRef.current === null) return;
 
         if (playerState === PLAYER_STATE.PLAYING) {
+          // Playing for real — the poster is gone, so the screen can be uncovered.
+          setLive(true);
           // Covers a resume after any interruption: rejoin the broadcast where it is now,
           // not where it stopped. The 2-second tolerance makes the check that follows an
           // ordinary load a no-op.
@@ -145,6 +160,7 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
       if (loadedItemRef.current !== null) {
         player.stopVideo();
         loadedItemRef.current = null;
+        setLive(false);
       }
       return;
     }
@@ -153,6 +169,9 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
 
     // Join wherever the broadcast already is — tuning in mid-song is normal, and waiting
     // for the next track would make the app look broken on open.
+    // Cover the screen again for the new song, until it is genuinely playing.
+    setLive(false);
+
     player.loadVideoById({
       videoId: playing.videoId,
       startSeconds: positionAt(playing),
@@ -214,15 +233,20 @@ export default function YouTubePlayer({ playing, muted, volume, positionAt, onFa
       <div ref={mountRef} className={styles.frame} />
 
       {/*
-        Dead air. A sibling laid *over* the player, never a change to it — the iframe stays
-        mounted, sized and visible underneath, so the rule above is untouched. It only
-        exists while nothing is on air, and it is purely visual: silence stays silent.
+        Two covers, both siblings laid *over* the player and never a change to it — the
+        iframe stays mounted, sized and visible underneath, so the rule above is untouched.
+
+        Nothing on air: dead air, which is purely visual. Silence stays silent.
+        On air but not yet started: a plain screen, hiding YouTube's poster and its play
+        and share buttons until the song is actually running.
       */}
       {!playing && (
         <div className={styles.deadAir}>
           <span className={styles.tally}>Off air</span>
         </div>
       )}
+
+      {playing && !live && <div className={styles.tuning} />}
     </div>
   );
 }

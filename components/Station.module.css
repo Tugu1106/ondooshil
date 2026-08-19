@@ -207,7 +207,7 @@
 }
 
 .success {
-  background: rgba(255, 122, 69, 0.1);
-  border: 1px solid var(--accent);
-  color: var(--accent);
+  background: rgba(63, 207, 142, 0.12);
+  border: 1px solid var(--success);
+  color: var(--success);
 }

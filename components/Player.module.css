@@ -120,6 +120,40 @@
   }
 }
 
+/*
+ * The gap between loading a song and it actually starting.
+ *
+ * YouTube paints its own poster there — the big play button and the share buttons — for a
+ * second or three, and `controls: 0` does not suppress it, because that is the
+ * pre-playback state rather than the transport bar. So the screen is simply held closed
+ * until the player reports PLAYING.
+ *
+ * Deliberately not static: dead air means the station is silent, and a transition is not
+ * that. This is just a screen that has not lit up yet.
+ */
+.tuning {
+  position: absolute;
+  inset: 0;
+  background: #0a0b0f;
+  pointer-events: none;
+  animation: warm 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes warm {
+  from {
+    background-color: #0a0b0f;
+  }
+  to {
+    background-color: #14161d;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tuning {
+    animation: none;
+  }
+}
+
 /* The studio tally. Dark, because off air is precisely when the light is not lit. */
 .tally {
   position: relative; /* above the static */

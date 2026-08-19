@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import styles from './Station.module.css';
 
@@ -9,7 +9,16 @@ import styles from './Station.module.css';
  *
  * Anonymous by default — "Show my name" is opt-in, and unticked after every add so a
  * single decision never silently carries over to the next song.
+ *
+ * Success clears itself after {@link SUCCESS_MS}, and does not name the song. The queue
+ * below already shows what was added; a confirmation that repeats the title and then sits
+ * there until the next add is a receipt for something the user can already see.
+ *
+ * Failures do **not** auto-clear — those you need time to read and act on.
  */
+
+/** How long the confirmation stays up. Long enough to notice, short enough not to linger. */
+const SUCCESS_MS = 1800;
 
 type Props = {
   onAdded: () => void | Promise<void>;
@@ -21,6 +30,12 @@ export default function AddSongForm({ onAdded }: Props) {
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!success) return;
+    const timer = setTimeout(() => setSuccess(null), SUCCESS_MS);
+    return () => clearTimeout(timer);
+  }, [success]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -44,7 +59,7 @@ export default function AddSongForm({ onAdded }: Props) {
         return;
       }
 
-      setSuccess(`Queued: ${payload?.added?.title ?? 'your song'}`);
+      setSuccess('Added to the queue');
       setUrl('');
       setShowName(false);
       await onAdded();
