@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { QueueRow } from '@/lib/types';
+import type { NowPlaying, QueueRow } from '@/lib/types';
 
 import RevealButton from './RevealButton';
 import styles from './Station.module.css';
@@ -10,10 +10,10 @@ import styles from './Station.module.css';
 /**
  * The queue — the whole day in one list (spec §12).
  *
- * Past songs, then the next one, then everything still to come. The list **rests with the
- * next song against the top edge**: that is the one position that matters, so it is the
- * one the list always returns to. The past is parked just above, reachable by scrolling
- * up; take the pointer away and it settles back on its own.
+ * Past songs, the one on air, then everything still to come. The list **rests with one
+ * past song against the top edge and the current song directly under it**: enough history
+ * visible to show where you are, without burying what is playing. The rest of the past is
+ * parked above, reachable by scrolling up; take the pointer away and it settles back.
  *
  * A single list rather than a "played" section and an "up next" section, because it is a
  * single thing — a day of the station, read downward.
@@ -49,6 +49,31 @@ function attribution(row: QueueRow): string | null {
   return row.addedByName;
 }
 
+/**
+ * The song on air as a queue row.
+ *
+ * `/api/state` deliberately keeps it out of `upNext` — which song is current is owned by
+ * `player_state`, not by the queue — so the timeline is reassembled here rather than by
+ * changing a contract that is stable from Phase 2 onward.
+ *
+ * `isMine` comes from `canSkip`, which is true only for the adder, so no identity is
+ * invented. `canRemove` is false because the server refuses to delete the song on air
+ * (409 `on_air`); skip is the way past it.
+ */
+function playingAsRow(playing: NowPlaying): QueueRow {
+  return {
+    id: playing.queueItemId,
+    videoId: playing.videoId,
+    title: playing.title,
+    durationSec: playing.durationSec,
+    status: 'playing',
+    addedByName: playing.addedByName,
+    isMine: playing.canSkip,
+    canRemove: false,
+    revealed: false,
+  };
+}
+
 function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
@@ -56,7 +81,9 @@ function prefersReducedMotion(): boolean {
 type Props = {
   /** Today's history, newest first, as the API returns it. */
   played: QueueRow[];
-  /** Round-robin ordered, the first row being what plays next. */
+  /** The song on air, or null for silence. */
+  playing: NowPlaying | null;
+  /** Round-robin ordered, and never contains the song on air. */
   upNext: QueueRow[];
   onRemove: (row: QueueRow) => void;
   onReveal: (row: QueueRow) => void;
@@ -66,6 +93,7 @@ type Props = {
 
 export default function Queue({
   played,
+  playing,
   upNext,
   onRemove,
   onReveal,
@@ -78,13 +106,22 @@ export default function Queue({
   const insideRef = useRef(false);
   const settledOnce = useRef(false);
 
-  // Oldest first, so the day reads downward: what has been, then what is coming.
-  const rows = [...[...played].reverse(), ...upNext];
+  /** Whether the list is scrolled all the way up, so the hint can stand down. */
+  const [atTop, setAtTop] = useState(false);
 
-  // The next song, or — when nothing is queued — the last thing that played, so the list
-  // still has somewhere to rest.
-  const anchorIndex = upNext.length > 0 ? played.length : rows.length - 1;
+  // Oldest first, so the day reads downward: what has been, what is, what is coming.
+  const history = [...played].reverse();
+  const rows = [...history, ...(playing ? [playingAsRow(playing)] : []), ...upNext];
+
+  /*
+   * What the list is about: the song on air, or the next one when nothing is, or simply
+   * the end of the day. One row above it sits at the top edge, which is what keeps a
+   * single past song in view.
+   */
+  const focusIndex = playing !== null || upNext.length > 0 ? history.length : rows.length - 1;
+  const anchorIndex = Math.max(0, focusIndex - 1);
   const anchorId = rows[anchorIndex]?.id ?? null;
+  const playingId = playing?.queueItemId ?? null;
 
   const settle = useCallback((smooth: boolean) => {
     const list = listRef.current;
@@ -128,66 +165,95 @@ export default function Queue({
     settleTimer.current = setTimeout(() => settle(true), SETTLE_MS);
   }
 
+  function handleScroll() {
+    // React bails on an identical value, so this does not re-render on every scroll tick.
+    setAtTop((listRef.current?.scrollTop ?? 0) <= 2);
+  }
+
   if (rows.length === 0) {
     return <p className={styles.empty}>Nothing today yet. Paste a link to start the station.</p>;
   }
 
   return (
-    <div
-      ref={listRef}
-      className={styles.queue}
-      onPointerEnter={handleEnter}
-      onPointerLeave={handleLeave}
-      aria-label="Queue"
-    >
-      {rows.map((row, index) => {
-        const past = index < played.length;
-        const note = statusNote(row);
-        const who = attribution(row);
-        const meta = [who, note].filter(Boolean).join(' · ');
+    <div className={styles.queueBox}>
+      {/*
+        There is history above the fold and nothing else would say so — the list opens
+        part-scrolled, which looks like the top. Stands down once you reach it.
+      */}
+      {history.length > 0 && (
+        <p className={styles.pastHint} data-quiet={atTop}>
+          ↑ Earlier today
+        </p>
+      )}
 
-        return (
-          <div
-            key={row.id}
-            ref={index === anchorIndex ? anchorRef : null}
-            className={`${styles.card} ${past ? styles.past : ''}`}
-          >
-            <span className={styles.cardMain}>
-              <span className={`${styles.title} ${note ? styles.struck : ''}`}>{row.title}</span>
-              <span className={styles.cardMeta}>
-                {!past && index === anchorIndex && <span className={styles.next}>Next</span>}
-                {meta && <span className={row.isMine ? styles.mine : undefined}>{meta}</span>}
-                <span className={styles.duration}>{formatDuration(row.durationSec)}</span>
+      <div
+        ref={listRef}
+        className={styles.queue}
+        onPointerEnter={handleEnter}
+        onPointerLeave={handleLeave}
+        onScroll={handleScroll}
+        aria-label="Queue"
+      >
+        {rows.map((row, index) => {
+          const past = index < history.length;
+          const isPlaying = row.id === playingId;
+          const isNext = !past && !isPlaying && index === focusIndex + (playing ? 1 : 0);
+          const note = statusNote(row);
+          const who = attribution(row);
+          const meta = [who, note].filter(Boolean).join(' · ');
+
+          return (
+            <div
+              key={row.id}
+              ref={index === anchorIndex ? anchorRef : null}
+              className={`${styles.card} ${past ? styles.past : ''} ${
+                isPlaying ? styles.playing : ''
+              }`}
+            >
+              {/* Marks where the station actually is in the day. */}
+              {isPlaying && (
+                <span className={styles.cursor} aria-hidden>
+                  ▶
+                </span>
+              )}
+
+              <span className={styles.cardMain}>
+                <span className={`${styles.title} ${note ? styles.struck : ''}`}>{row.title}</span>
+                <span className={styles.cardMeta}>
+                  {isNext && <span className={styles.next}>Next</span>}
+                  {meta && <span className={row.isMine ? styles.mine : undefined}>{meta}</span>}
+                  <span className={styles.duration}>{formatDuration(row.durationSec)}</span>
+                </span>
               </span>
-            </span>
 
-            {/* Only where the adder is hidden from this viewer. */}
-            {row.addedByName === null && (
-              <RevealButton
-                remaining={revealsRemaining}
-                busy={busy}
-                onReveal={() => onReveal(row)}
-              />
-            )}
+              {/* Only where the adder is hidden from this viewer. */}
+              {row.addedByName === null && (
+                <RevealButton
+                  remaining={revealsRemaining}
+                  busy={busy}
+                  onReveal={() => onReveal(row)}
+                />
+              )}
 
-            {/* Only ever on your own pending rows. The server enforces it regardless. */}
-            {row.canRemove && (
-              <button
-                className={styles.remove}
-                disabled={busy}
-                onClick={() => onRemove(row)}
-                aria-label={`Remove ${row.title}`}
-                title="Remove"
-              >
-                ×
-              </button>
-            )}
-          </div>
-        );
-      })}
+              {/* Only ever on your own pending rows. The server enforces it regardless. */}
+              {row.canRemove && (
+                <button
+                  className={styles.remove}
+                  disabled={busy}
+                  onClick={() => onRemove(row)}
+                  aria-label={`Remove ${row.title}`}
+                  title="Remove"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          );
+        })}
 
-      {/* Slack below the last card, so it can still reach the top edge and be rested on. */}
-      <div className={styles.tail} aria-hidden />
+        {/* Slack below the last card, so it can still reach the top edge and be rested on. */}
+        <div className={styles.tail} aria-hidden />
+      </div>
     </div>
   );
 }

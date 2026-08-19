@@ -612,6 +612,27 @@ readable, and a sunny day did not look sunny.
 - The two covers are visually distinct on purpose. Static means the station is silent; a
   transition is not that, so it gets a plain screen that has not lit up yet.
 
+**The queue shows where the station is (2026-08-18)**
+
+- **The song on air now appears in the queue**, marked with a ▶ cursor and an accent card.
+  `/api/state` deliberately keeps it out of `upNext` — which song is current is owned by
+  `player_state`, not by the queue — so the timeline is reassembled in `Queue.tsx` from
+  `playing` rather than by changing a contract that is stable from Phase 2 onward.
+- **`playingAsRow()` invents no identity.** `isMine` comes from `canSkip`, which the server
+  already sets true only for the adder; `canRemove` is false because deleting the song on
+  air is refused with 409 `on_air` and skip is the way past it.
+- **The rest position moved**: one past song at the top edge, the current song directly
+  under it, the future below. `anchorIndex = focusIndex - 1` rather than the focus itself.
+  With no history it degrades to the current song at the top, which is correct.
+- **The scrollbar is gone** (`scrollbar-width: none` plus the WebKit pseudo-element). The
+  list settles itself and the hint says where you are, so the bar was noise down the side
+  of the cards. Note this is `Station.module.css`, not the player styles the audit scans
+  for `display: none`; re-checked that invariant, still zero.
+- **A faded "↑ Earlier today" sits above the scroller**, outside it so it does not scroll
+  away. It exists because the list opens part-scrolled and its top edge therefore looks
+  like the top of the day when it is not. It fades to near-invisible once you actually
+  reach the top, where it would be describing something already on screen.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the

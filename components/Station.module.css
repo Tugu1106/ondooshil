@@ -6,6 +6,31 @@
  * rest, so the list has one true position rather than wherever it was left.
  */
 
+/* Holds the hint above the scroller, which must sit outside it to stay put. */
+.queueBox {
+  position: relative;
+}
+
+/*
+ * The list opens part-scrolled, so its top edge looks like the top of the day when it is
+ * not. This is the only thing that says otherwise. It stands down once you reach the top,
+ * where it would be telling you about something you are already looking at.
+ */
+.pastHint {
+  margin: 0;
+  padding: 12px 20px 6px;
+  color: var(--text-muted);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.65;
+  transition: opacity 0.25s ease;
+}
+
+.pastHint[data-quiet='true'] {
+  opacity: 0.16;
+}
+
 .queue {
   --queue-height: 440px;
   /* Approximate card height. Only the tail spacer uses it, so a rough value is fine. */
@@ -16,7 +41,16 @@
   overflow-y: auto;
   overflow-anchor: none; /* the settle logic owns the scroll position, not the browser */
   padding: 0 20px 20px;
-  scrollbar-width: thin;
+
+  /*
+   * No scrollbar. The list settles itself and the hint above says where you are, so the
+   * bar was only ever visual noise down the side of the cards.
+   */
+  scrollbar-width: none;
+}
+
+.queue::-webkit-scrollbar {
+  display: none;
 }
 
 .card {
@@ -32,6 +66,19 @@
 /* Already played. Still legible, clearly behind. */
 .past {
   opacity: 0.5;
+}
+
+/* Where the station actually is. */
+.playing {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-raised));
+}
+
+.cursor {
+  flex-shrink: 0;
+  color: var(--accent);
+  font-size: 11px;
+  line-height: 1;
 }
 
 .cardMain {

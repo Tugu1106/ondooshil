@@ -206,6 +206,7 @@ export default function SignedIn({ user, users, initialState, sky }: Props) {
           <section className={styles.panel}>
             <Queue
               played={station.state.playedToday}
+              playing={station.state.playing}
               upNext={station.state.upNext}
               onRemove={handleRemove}
               onReveal={handleReveal}
