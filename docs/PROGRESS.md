@@ -633,6 +633,24 @@ readable, and a sunny day did not look sunny.
   like the top of the day when it is not. It fades to near-invisible once you actually
   reach the top, where it would be describing something already on screen.
 
+**The station's position is always a row (2026-08-18)** — three corrections.
+
+- **The bug behind the layout being wrong**: with two played songs and nothing on air, the
+  focus fell back to the *last past song*, so both past songs sat visible and the list was
+  anchored to history rather than to now. Fixed by making the current position a row in its
+  own right — the song on air, or an **empty dashed card** when there is none. `focusIndex`
+  is therefore always `history.length`, and the anchor is always the row above it. One past
+  song stays in view, everything older goes behind the top edge, and the cursor points at
+  the empty slot during silence. **The station has a position whether or not it has a song**,
+  and the list should reflect that.
+- **The cursor moved out of the card into a gutter beside it.** It marks the list, not the
+  song. Fixed-width whether or not it holds the marker, so every card starts on the same
+  line.
+- **The past hint became an overlay** across the top of the list: centred, inert
+  (`pointer-events: none`, so it cannot swallow a scroll over the cards under it), with a
+  gradient fading down from the panel colour. The gradient is what makes the top row read
+  as continuing upward instead of being cut off. It fades to nothing once you reach the top.
+
 ## Deviations from the spec or plan
 
 Anything built differently from what the documents say, **with the reason**. Empty is the

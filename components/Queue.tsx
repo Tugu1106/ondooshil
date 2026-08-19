@@ -10,13 +10,16 @@ import styles from './Station.module.css';
 /**
  * The queue — the whole day in one list (spec §12).
  *
- * Past songs, the one on air, then everything still to come. The list **rests with one
- * past song against the top edge and the current song directly under it**: enough history
- * visible to show where you are, without burying what is playing. The rest of the past is
- * parked above, reachable by scrolling up; take the pointer away and it settles back.
+ * Past songs, the station's current position, then everything still to come. The list
+ * **rests with one past song against the top edge and the current position directly under
+ * it**: enough history to show where you are, without burying what is playing. The rest of
+ * the past is parked above, reachable by scrolling up; take the pointer away and it
+ * settles back.
  *
- * A single list rather than a "played" section and an "up next" section, because it is a
- * single thing — a day of the station, read downward.
+ * **The current position is always a row, even in silence.** When nothing is on air it is
+ * an empty card, and the cursor still points at it. That is what keeps the list anchored
+ * to *now* rather than sliding down to the last thing that played — the station has a
+ * position whether or not it has a song.
  */
 
 /**
@@ -74,6 +77,9 @@ function playingAsRow(playing: NowPlaying): QueueRow {
   };
 }
 
+/** A song in the day, or the empty slot the station is sitting on. */
+type Entry = { kind: 'song'; row: QueueRow; past: boolean } | { kind: 'ghost' };
+
 function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
@@ -111,17 +117,23 @@ export default function Queue({
 
   // Oldest first, so the day reads downward: what has been, what is, what is coming.
   const history = [...played].reverse();
-  const rows = [...history, ...(playing ? [playingAsRow(playing)] : []), ...upNext];
+
+  const entries: Entry[] = [
+    ...history.map((row): Entry => ({ kind: 'song', row, past: true })),
+    playing
+      ? { kind: 'song', row: playingAsRow(playing), past: false }
+      : ({ kind: 'ghost' } as Entry),
+    ...upNext.map((row): Entry => ({ kind: 'song', row, past: false })),
+  ];
 
   /*
-   * What the list is about: the song on air, or the next one when nothing is, or simply
-   * the end of the day. One row above it sits at the top edge, which is what keeps a
-   * single past song in view.
+   * Where the station is, always — the song on air, or the empty slot standing in for it.
+   * One row above that sits at the top edge, which is what keeps a single past song in
+   * view and everything older behind it.
    */
-  const focusIndex = playing !== null || upNext.length > 0 ? history.length : rows.length - 1;
+  const focusIndex = history.length;
   const anchorIndex = Math.max(0, focusIndex - 1);
-  const anchorId = rows[anchorIndex]?.id ?? null;
-  const playingId = playing?.queueItemId ?? null;
+  const anchorKey = playing?.queueItemId ?? `ghost:${history.length}:${upNext.length}`;
 
   const settle = useCallback((smooth: boolean) => {
     const list = listRef.current;
@@ -136,16 +148,16 @@ export default function Queue({
   }, []);
 
   /**
-   * Re-settle whenever the anchor changes — the station advanced, or a song was added or
-   * removed. Instant on the first pass so the list is never painted in the wrong place,
-   * and skipped entirely while someone is in there reading.
+   * Re-settle whenever the station moves, or a song is added or removed. Instant on the
+   * first pass so the list is never painted in the wrong place, and skipped entirely while
+   * someone is in there reading.
    */
   useEffect(() => {
     const smooth = settledOnce.current;
     settledOnce.current = true;
     if (insideRef.current) return;
     settle(smooth);
-  }, [anchorId, settle]);
+  }, [anchorKey, settle]);
 
   useEffect(() => {
     return () => {
@@ -170,22 +182,12 @@ export default function Queue({
     setAtTop((listRef.current?.scrollTop ?? 0) <= 2);
   }
 
-  if (rows.length === 0) {
+  if (history.length === 0 && !playing && upNext.length === 0) {
     return <p className={styles.empty}>Nothing today yet. Paste a link to start the station.</p>;
   }
 
   return (
     <div className={styles.queueBox}>
-      {/*
-        There is history above the fold and nothing else would say so — the list opens
-        part-scrolled, which looks like the top. Stands down once you reach it.
-      */}
-      {history.length > 0 && (
-        <p className={styles.pastHint} data-quiet={atTop}>
-          ↑ Earlier today
-        </p>
-      )}
-
       <div
         ref={listRef}
         className={styles.queue}
@@ -194,59 +196,72 @@ export default function Queue({
         onScroll={handleScroll}
         aria-label="Queue"
       >
-        {rows.map((row, index) => {
-          const past = index < history.length;
-          const isPlaying = row.id === playingId;
-          const isNext = !past && !isPlaying && index === focusIndex + (playing ? 1 : 0);
+        {entries.map((entry, index) => {
+          const isFocus = index === focusIndex;
+          const anchor = index === anchorIndex ? anchorRef : null;
+
+          if (entry.kind === 'ghost') {
+            return (
+              <div key="ghost" ref={anchor} className={styles.row}>
+                <span className={styles.cursor} aria-hidden>
+                  ▶
+                </span>
+                <div className={`${styles.card} ${styles.ghost}`} aria-label="Nothing on air" />
+              </div>
+            );
+          }
+
+          const { row, past } = entry;
+          const isNext = index === focusIndex + 1;
           const note = statusNote(row);
           const who = attribution(row);
           const meta = [who, note].filter(Boolean).join(' · ');
 
           return (
-            <div
-              key={row.id}
-              ref={index === anchorIndex ? anchorRef : null}
-              className={`${styles.card} ${past ? styles.past : ''} ${
-                isPlaying ? styles.playing : ''
-              }`}
-            >
-              {/* Marks where the station actually is in the day. */}
-              {isPlaying && (
-                <span className={styles.cursor} aria-hidden>
-                  ▶
-                </span>
-              )}
-
-              <span className={styles.cardMain}>
-                <span className={`${styles.title} ${note ? styles.struck : ''}`}>{row.title}</span>
-                <span className={styles.cardMeta}>
-                  {isNext && <span className={styles.next}>Next</span>}
-                  {meta && <span className={row.isMine ? styles.mine : undefined}>{meta}</span>}
-                  <span className={styles.duration}>{formatDuration(row.durationSec)}</span>
-                </span>
+            <div key={row.id} ref={anchor} className={styles.row}>
+              {/* In the gutter, outside the card — it marks the list, not the song. */}
+              <span className={styles.cursor} aria-hidden>
+                {isFocus ? '▶' : ''}
               </span>
 
-              {/* Only where the adder is hidden from this viewer. */}
-              {row.addedByName === null && (
-                <RevealButton
-                  remaining={revealsRemaining}
-                  busy={busy}
-                  onReveal={() => onReveal(row)}
-                />
-              )}
+              <div
+                className={`${styles.card} ${past ? styles.past : ''} ${
+                  isFocus ? styles.playing : ''
+                }`}
+              >
+                <span className={styles.cardMain}>
+                  <span className={`${styles.title} ${note ? styles.struck : ''}`}>
+                    {row.title}
+                  </span>
+                  <span className={styles.cardMeta}>
+                    {isNext && <span className={styles.next}>Next</span>}
+                    {meta && <span className={row.isMine ? styles.mine : undefined}>{meta}</span>}
+                    <span className={styles.duration}>{formatDuration(row.durationSec)}</span>
+                  </span>
+                </span>
 
-              {/* Only ever on your own pending rows. The server enforces it regardless. */}
-              {row.canRemove && (
-                <button
-                  className={styles.remove}
-                  disabled={busy}
-                  onClick={() => onRemove(row)}
-                  aria-label={`Remove ${row.title}`}
-                  title="Remove"
-                >
-                  ×
-                </button>
-              )}
+                {/* Only where the adder is hidden from this viewer. */}
+                {row.addedByName === null && (
+                  <RevealButton
+                    remaining={revealsRemaining}
+                    busy={busy}
+                    onReveal={() => onReveal(row)}
+                  />
+                )}
+
+                {/* Only ever on your own pending rows. The server enforces it regardless. */}
+                {row.canRemove && (
+                  <button
+                    className={styles.remove}
+                    disabled={busy}
+                    onClick={() => onRemove(row)}
+                    aria-label={`Remove ${row.title}`}
+                    title="Remove"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}
@@ -254,6 +269,18 @@ export default function Queue({
         {/* Slack below the last card, so it can still reach the top edge and be rested on. */}
         <div className={styles.tail} aria-hidden />
       </div>
+
+      {/*
+        Laid over the top of the list, because the list opens part-scrolled and its top edge
+        therefore looks like the top of the day when it is not. Inert, so it cannot catch a
+        scroll, and it stands down once you reach the top where it would be describing
+        something already on screen.
+      */}
+      {history.length > 0 && (
+        <div className={styles.pastHint} data-quiet={atTop} aria-hidden>
+          <span className={styles.pastHintLabel}>↑ Scroll to see past</span>
+        </div>
+      )}
     </div>
   );
 }

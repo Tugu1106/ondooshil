@@ -12,23 +12,41 @@
 }
 
 /*
- * The list opens part-scrolled, so its top edge looks like the top of the day when it is
- * not. This is the only thing that says otherwise. It stands down once you reach the top,
- * where it would be telling you about something you are already looking at.
+ * Laid over the top of the list, because the list opens part-scrolled and its top edge
+ * therefore looks like the top of the day when it is not.
+ *
+ * Inert, so it cannot swallow a scroll over the cards beneath it, and it fades out once
+ * you reach the top, where it would be describing something already on screen. The
+ * gradient is what makes the row underneath read as continuing upward rather than as being
+ * cut off at the edge.
  */
 .pastHint {
-  margin: 0;
-  padding: 12px 20px 6px;
-  color: var(--text-muted);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  opacity: 0.65;
-  transition: opacity 0.25s ease;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  padding: 10px 0 28px;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(23, 25, 33, 0.97) 0%,
+    rgba(23, 25, 33, 0.82) 42%,
+    rgba(23, 25, 33, 0) 100%
+  );
+  transition: opacity 0.3s ease;
 }
 
 .pastHint[data-quiet='true'] {
-  opacity: 0.16;
+  opacity: 0;
+}
+
+.pastHintLabel {
+  color: var(--text-muted);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .queue {
@@ -53,11 +71,20 @@
   display: none;
 }
 
+/* Cursor gutter, then the card. The marker belongs to the list, not to the song. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .card {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 8px;
+  flex: 1;
+  min-width: 0;
   padding: 13px 16px;
   background: var(--surface-raised);
   border: 1px solid var(--border);
@@ -74,11 +101,26 @@
   background: color-mix(in srgb, var(--accent) 8%, var(--surface-raised));
 }
 
+/* Fixed width whether or not it holds the marker, so every card starts on the same line. */
 .cursor {
+  width: 12px;
   flex-shrink: 0;
   color: var(--accent);
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1;
+  text-align: center;
+}
+
+/*
+ * The slot the station is sitting on with nothing to play. It is a row so the list stays
+ * anchored to *now* rather than sliding down to the last thing that played — the station
+ * has a position whether or not it has a song.
+ */
+.ghost {
+  min-height: 52px;
+  background: none;
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
 }
 
 .cardMain {
