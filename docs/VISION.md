@@ -1,11 +1,52 @@
-# Office Radio — System Documentation
+# Office Radio — Vision & Foundation
 
-A description of the system **as it exists today**. Not a plan, not a roadmap — a reference
-for anyone reading this codebase cold.
+## Why this repo exists
+
+Office Radio was built as a **mini app for one room**. Six people, one shared speaker, one
+queue. It was never meant to be a product — it was meant to stop the argument about whose
+laptop the music comes from. It works, and it is in use.
+
+**The purpose of this repo is the ambitious version: taking it public.**
+
+That is a genuinely different thing. What exists today is deliberately single-tenant —
+one queue, one playhead, one hardcoded room in one hardcoded city, six names seeded by hand.
+Every one of those decisions was correct for an office and is a wall for a product. Going
+public means multi-tenancy, sign-up, scale, and a business model, none of which this code
+has.
+
+So development runs on **two parallel tracks**:
+
+| Track | Purpose |
+|---|---|
+| **Live production** | The existing deployment, for the office. Stable, single-tenant, left alone |
+| **This work** | The public product. Free to break things, restructure, and rebuild |
+
+## What this document is
+
+**Everything below describes the system exactly as it exists today** — not the public
+version, not a roadmap, not a proposal. It is the foundation being built on, written down
+precisely so that:
+
+- nothing already solved gets solved again,
+- nothing load-bearing gets removed by accident,
+- and the decisions that look arbitrary can be understood before they are overturned.
+
+Several things in here *should* change to go public. This document does not say which, or
+how. It says what is there and why it is there. **Read it before changing it.**
+
+The one thing worth knowing up front: a lot of what looks like over-engineering here is
+scar tissue. The timeline rules, the two-cookie auth, the single serializer choke point,
+the "no admin" rule — each of those exists because the obvious alternative was tried and
+produced a specific, hard-to-diagnose bug. Those reasons are recorded inline throughout.
 
 Companion documents: [office-radio-spec.md](../office-radio-spec.md) is the original design
 authority, [BUILD-PLAN.md](BUILD-PLAN.md) records how it was sequenced, and
-[PROGRESS.md](PROGRESS.md) is the running log of decisions and deviations.
+[PROGRESS.md](PROGRESS.md) is the append-only log of every decision and deviation made
+during the build.
+
+---
+
+# The foundation — the system as it stands
 
 ---
 
